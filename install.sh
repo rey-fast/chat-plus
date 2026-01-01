@@ -111,6 +111,8 @@ if command -v python3 &> /dev/null; then
 else
     log_info "Instalando Python 3..."
     apt-get install -y python3 python3-pip python3-venv python3-dev
+	PYTHON_FULL_VERSION=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+	apt-get install -y python${PYTHON_FULL_VERSION}-venv
 fi
 
 # Instalar pip se não estiver instalado
