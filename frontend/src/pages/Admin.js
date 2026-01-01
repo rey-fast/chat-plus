@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { MessageCircle } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -55,7 +56,9 @@ const Admin = () => {
     <div className="admin-container" data-testid="admin-page">
       <div className="admin-header">
         <div className="admin-logo">
-          <div className="logo-icon"></div>
+          <div className="logo-icon">
+            <MessageCircle size={24} strokeWidth={2.5} />
+          </div>
           <span className="logo-text">ChatPlus</span>
         </div>
         <button onClick={handleLogout} className="btn-logout" data-testid="logout-button">

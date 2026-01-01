@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Mail, Lock, ChevronDown } from 'lucide-react';
+import { Mail, Lock, MessageCircle } from 'lucide-react';
 import ImageCarousel from '../components/ImageCarousel';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -42,7 +42,9 @@ const Login = () => {
       <div className="login-sidebar" data-testid="login-sidebar">
         <div className="login-header">
           <div className="logo" data-testid="logo">
-            <div className="logo-icon"></div>
+            <div className="logo-icon">
+              <MessageCircle size={28} strokeWidth={2.5} />
+            </div>
             <span className="logo-text">ChatPlus</span>
           </div>
         </div>
@@ -78,19 +80,6 @@ const Login = () => {
             </div>
           </div>
 
-          <div className="form-group">
-            <div className="language-selector">
-              <div className="language-content">
-                <span className="flag-icon">🇧🇷</span>
-                <div className="language-text">
-                  <span className="language-label">Idioma</span>
-                  <span className="language-value">Português</span>
-                </div>
-              </div>
-              <ChevronDown className="dropdown-icon" size={20} />
-            </div>
-          </div>
-
           {error && (
             <div className="error-message" data-testid="error-message">
               {error}
@@ -109,10 +98,6 @@ const Login = () => {
           <a href="#" className="forgot-password" data-testid="forgot-password-link">
             Esqueceu a senha?
           </a>
-
-          <button type="button" className="btn-secondary" data-testid="contact-center-button">
-            CONHEÇA O NOVO CONTACT CENTER
-          </button>
         </form>
       </div>
 

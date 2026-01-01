@@ -301,8 +301,7 @@ sudo systemctl status mongod
 
 | Versão | Data | Descrição |
 |--------|------|----------|
-| 1.0 | 2025 | Versão inicial com PostgreSQL |
-| 2.0 | 2025 | Migração para MongoDB |
+| 1.0 | 2025 | Versão inicial com MongoDB |
 
 ---
 
