@@ -98,11 +98,11 @@ else
 fi
 
 # MongoDB
-if command -v psql &> /dev/null; then
-    PG_VERSION=$(psql --version | awk '{print $3}')
-    log_success "PostgreSQL: $PG_VERSION"
+if command -v mongod &> /dev/null; then
+    MONGO_VERSION=$(mongod --version | head -1 | awk '{print $3}' | sed 's/v//')
+    log_success "MongoDB: $MONGO_VERSION"
 else
-    log_error "PostgreSQL não está instalado"
+    log_error "MongoDB não está instalado"
     ((ISSUES++))
 fi
 
@@ -121,11 +121,11 @@ echo ""
 # ==============================================================================
 log_info "3. Status dos Serviços"
 
-# PostgreSQL
-if systemctl is-active --quiet postgresql; then
-    log_success "PostgreSQL está rodando"
+# MongoDB
+if systemctl is-active --quiet mongod; then
+    log_success "MongoDB está rodando"
 else
-    log_error "PostgreSQL NÃO está rodando"
+    log_error "MongoDB NÃO está rodando"
     ((ISSUES++))
 fi
 
@@ -138,7 +138,7 @@ else
 fi
 
 # Backend (via supervisor)
-if supervisorctl status backend | grep -q RUNNING; then
+if supervisorctl status backend 2>/dev/null | grep -q RUNNING; then
     log_success "Backend está rodando"
 else
     log_error "Backend NÃO está rodando"
@@ -146,7 +146,7 @@ else
 fi
 
 # Frontend (via supervisor)
-if supervisorctl status frontend | grep -q RUNNING; then
+if supervisorctl status frontend 2>/dev/null | grep -q RUNNING; then
     log_success "Frontend está rodando"
 else
     log_error "Frontend NÃO está rodando"
@@ -176,11 +176,11 @@ else
     ((ISSUES++))
 fi
 
-# Porta 27017 (PostgreSQL)
-if lsof -Pi :5432 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    log_success "Porta 5432 (PostgreSQL) está em uso"
+# Porta 27017 (MongoDB)
+if lsof -Pi :27017 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    log_success "Porta 27017 (MongoDB) está em uso"
 else
-    log_error "Porta 5432 (PostgreSQL) NÃO está em uso"
+    log_error "Porta 27017 (MongoDB) NÃO está em uso"
     ((ISSUES++))
 fi
 
@@ -255,11 +255,11 @@ else
     log_warning "Frontend pode estar carregando... (verifique logs)"
 fi
 
-# PostgreSQL
-if sudo -u postgres psql -c "SELECT 1;" chatplus_db > /dev/null 2>&1; then
-    log_success "Conexão com PostgreSQL está OK"
+# MongoDB
+if mongosh --eval "db.adminCommand('ping')" --quiet > /dev/null 2>&1; then
+    log_success "Conexão com MongoDB está OK"
 else
-    log_error "Falha ao conectar com PostgreSQL"
+    log_error "Falha ao conectar com MongoDB"
     ((ISSUES++))
 fi
 

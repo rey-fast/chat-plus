@@ -4,11 +4,14 @@ Script para criar usuário administrador inicial
 Uso: python create_admin.py
 """
 
-import psycopg2
+import asyncio
 import os
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 from pathlib import Path
+from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime, timezone
+import uuid
 
 # Carregar variáveis de ambiente
 ROOT_DIR = Path(__file__).parent
@@ -26,120 +29,109 @@ ADMIN_DATA = {
     'role': 'admin'
 }
 
-def get_db_connection():
-    """Cria conexão com PostgreSQL"""
+async def get_db_connection():
+    """Cria conexão com MongoDB"""
     try:
-        conn = psycopg2.connect(
-            host=os.environ.get('DB_HOST', 'localhost'),
-            database=os.environ.get('DB_NAME', 'chat_plus'),
-            user=os.environ.get('DB_USER', 'postgres'),
-            password=os.environ.get('DB_PASSWORD', 'postgres'),
-            port=os.environ.get('DB_PORT', '5432')
-        )
-        return conn
+        mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+        db_name = os.environ.get('DB_NAME', 'chatplus_db')
+        
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[db_name]
+        
+        # Test connection
+        await client.admin.command('ping')
+        
+        return client, db
     except Exception as e:
         print(f"❌ Erro ao conectar ao banco de dados: {e}")
-        return None
+        return None, None
 
-def create_users_table(cursor):
-    """Cria a tabela users se não existir"""
+async def create_indexes(db):
+    """Cria índices na collection users"""
     try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                username VARCHAR(100) UNIQUE NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                role VARCHAR(50) DEFAULT 'user',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        print("✓ Tabela 'users' verificada/criada com sucesso")
+        await db.users.create_index("username", unique=True)
+        await db.users.create_index("email", unique=True)
+        print("✓ Índices criados/verificados com sucesso")
         return True
     except Exception as e:
-        print(f"❌ Erro ao criar tabela: {e}")
+        print(f"❌ Erro ao criar índices: {e}")
         return False
 
-def check_admin_exists(cursor):
+async def check_admin_exists(db):
     """Verifica se o usuário admin já existe"""
     try:
-        cursor.execute(
-            "SELECT id, username, email FROM users WHERE username = %s OR email = %s",
-            (ADMIN_DATA['username'], ADMIN_DATA['email'])
-        )
-        result = cursor.fetchone()
+        result = await db.users.find_one({
+            "$or": [
+                {"username": ADMIN_DATA['username']},
+                {"email": ADMIN_DATA['email']}
+            ]
+        })
         return result
     except Exception as e:
         print(f"❌ Erro ao verificar admin existente: {e}")
         return None
 
-def create_admin_user(cursor):
+async def create_admin_user(db):
     """Cria o usuário administrador"""
     try:
         # Hash da senha
         password_hash = pwd_context.hash(ADMIN_DATA['password'])
         
-        # Inserir usuário
-        cursor.execute("""
-            INSERT INTO users (name, username, email, password_hash, role)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id
-        """, (
-            ADMIN_DATA['name'],
-            ADMIN_DATA['username'],
-            ADMIN_DATA['email'],
-            password_hash,
-            ADMIN_DATA['role']
-        ))
+        # Dados do admin
+        admin_doc = {
+            "id": str(uuid.uuid4()),
+            "name": ADMIN_DATA['name'],
+            "username": ADMIN_DATA['username'],
+            "email": ADMIN_DATA['email'],
+            "password_hash": password_hash,
+            "role": ADMIN_DATA['role'],
+            "created_at": datetime.now(timezone.utc)
+        }
         
-        admin_id = cursor.fetchone()[0]
-        return admin_id
+        # Inserir usuário
+        result = await db.users.insert_one(admin_doc)
+        
+        return admin_doc['id']
     except Exception as e:
         print(f"❌ Erro ao criar usuário admin: {e}")
         return None
 
-def main():
+async def main():
     """Função principal"""
     print("\n" + "="*60)
     print("    CRIAÇÃO DE USUÁRIO ADMINISTRADOR INICIAL")
     print("="*60 + "\n")
     
     # Conectar ao banco
-    print("⏳ Conectando ao banco de dados...")
-    conn = get_db_connection()
+    print("⏳ Conectando ao MongoDB...")
+    client, db = await get_db_connection()
     
-    if not conn:
+    if not db:
         print("\n❌ Falha na conexão. Verifique as configurações em .env")
         print("\nVariáveis necessárias:")
-        print("  - DB_HOST")
+        print("  - MONGO_URL")
         print("  - DB_NAME")
-        print("  - DB_USER")
-        print("  - DB_PASSWORD")
-        print("  - DB_PORT")
         return
     
     print("✓ Conexão estabelecida com sucesso\n")
     
     try:
-        cursor = conn.cursor()
-        
-        # Criar tabela se não existir
+        # Criar índices
         print("⏳ Verificando estrutura do banco...")
-        if not create_users_table(cursor):
+        if not await create_indexes(db):
             return
         
         print()
         
         # Verificar se admin já existe
         print("⏳ Verificando usuário admin existente...")
-        existing_admin = check_admin_exists(cursor)
+        existing_admin = await check_admin_exists(db)
         
         if existing_admin:
             print(f"⚠️  Usuário admin já existe!")
-            print(f"   ID: {existing_admin[0]}")
-            print(f"   Username: {existing_admin[1]}")
-            print(f"   Email: {existing_admin[2]}")
+            print(f"   ID: {existing_admin.get('id')}")
+            print(f"   Username: {existing_admin.get('username')}")
+            print(f"   Email: {existing_admin.get('email')}")
             print("\n💡 Se deseja recriar, delete o usuário existente primeiro.")
             return
         
@@ -147,10 +139,9 @@ def main():
         
         # Criar novo admin
         print("⏳ Criando usuário administrador...")
-        admin_id = create_admin_user(cursor)
+        admin_id = await create_admin_user(db)
         
         if admin_id:
-            conn.commit()
             print("✓ Usuário administrador criado com sucesso!\n")
             print("="*60)
             print("   CREDENCIAIS DE ACESSO")
@@ -163,17 +154,14 @@ def main():
             print("="*60)
             print("\n⚠️  IMPORTANTE: Altere a senha padrão após o primeiro login!\n")
         else:
-            conn.rollback()
             print("\n❌ Falha ao criar usuário administrador")
         
     except Exception as e:
         print(f"\n❌ Erro durante execução: {e}")
-        conn.rollback()
     
     finally:
-        cursor.close()
-        conn.close()
+        client.close()
         print("✓ Conexão com banco de dados encerrada\n")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

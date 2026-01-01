@@ -32,10 +32,10 @@ O script irá:
 1. ✅ Atualizar o sistema operacional
 2. ✅ Instalar dependências básicas (curl, wget, git, etc.)
 3. ✅ Instalar Python 3.11+ e pip
-4. ✅ Instalar e configurar PostgreSQL 16
+4. ✅ Instalar e configurar MongoDB 7.0+
 5. ✅ Instalar Node.js 18+ e Yarn
 6. ✅ Criar ambiente virtual Python
-7. ✅ Instalar dependências do backend (FastAPI, psycopg2, etc.)
+7. ✅ Instalar dependências do backend (FastAPI, motor, etc.)
 8. ✅ Instalar dependências do frontend (React, Tailwind, etc.)
 9. ✅ Configurar variáveis de ambiente
 10. ✅ Configurar Supervisor para gerenciar os serviços
@@ -79,11 +79,8 @@ sudo nano /app/backend/.env
 
 Altere as seguintes variáveis:
 - `JWT_SECRET_KEY`: Altere para uma chave secreta forte em produção
-- `DB_HOST`: Host do PostgreSQL (padrão: localhost)
+- `MONGO_URL`: URL de conexão do MongoDB (padrão: mongodb://localhost:27017)
 - `DB_NAME`: Nome do banco de dados (padrão: chatplus_db)
-- `DB_USER`: Usuário do PostgreSQL (padrão: postgres)
-- `DB_PASSWORD`: Senha do PostgreSQL (padrão: postgres)
-- `DB_PORT`: Porta do PostgreSQL (padrão: 5432)
 - `CORS_ORIGINS`: Configure os domínios permitidos (use `*` apenas em desenvolvimento)
 
 #### Frontend (`/app/frontend/.env`)
@@ -184,23 +181,24 @@ sudo tail -f /var/log/supervisor/frontend.out.log
 sudo journalctl -u mongod -f
 ```
 
-### PostgreSQL
+### MongoDB
 
 ```bash
-# Status do PostgreSQL
-sudo systemctl status postgresql
+# Status do MongoDB
+sudo systemctl status mongod
 
-# Reiniciar PostgreSQL
-sudo systemctl restart postgresql
+# Reiniciar MongoDB
+sudo systemctl restart mongod
 
-# Acessar shell do PostgreSQL
-sudo -u postgres psql chatplus_db
+# Acessar shell do MongoDB
+mongosh chatplus_db
 
-# Dentro do PostgreSQL shell:
-\dt                              # Listar tabelas
-SELECT * FROM users;             # Ver usuários
-\l                               # Listar bancos de dados
-\q                               # Sair
+# Dentro do MongoDB shell:
+show collections              # Listar collections
+db.users.find()               # Ver usuários
+db.users.countDocuments()     # Contar usuários
+show dbs                      # Listar bancos de dados
+exit                          # Sair
 ```
 
 ### Ambiente Virtual Python
@@ -241,8 +239,8 @@ yarn build
 # Verificar logs
 sudo tail -n 50 /var/log/supervisor/backend.err.log
 
-# Verificar se PostgreSQL está rodando
-sudo systemctl status postgresql
+# Verificar se MongoDB está rodando
+sudo systemctl status mongod
 
 # Testar backend manualmente
 cd /app/backend
@@ -263,20 +261,20 @@ yarn install
 sudo lsof -i :3000
 ```
 
-### PostgreSQL não conecta
+### MongoDB não conecta
 
 ```bash
 # Verificar status
-sudo systemctl status postgresql
+sudo systemctl status mongod
 
-# Reiniciar PostgreSQL
-sudo systemctl restart postgresql
+# Reiniciar MongoDB
+sudo systemctl restart mongod
 
 # Verificar conexão
-sudo -u postgres psql -c "SELECT 1;" chatplus_db
+mongosh --eval "db.adminCommand('ping')"
 
-# Ver logs do PostgreSQL
-sudo journalctl -u postgresql -n 50
+# Ver logs do MongoDB
+sudo journalctl -u mongod -n 50
 ```
 
 ### Portas já em uso
@@ -288,8 +286,8 @@ sudo lsof -i :3000
 # Verificar o que está usando a porta 8001
 sudo lsof -i :8001
 
-# Verificar o que está usando a porta 5432
-sudo lsof -i :5432
+# Verificar o que está usando a porta 27017
+sudo lsof -i :27017
 
 # Matar processo por porta
 sudo kill $(sudo lsof -t -i:3000)
@@ -313,7 +311,11 @@ sudo kill $(sudo lsof -t -i:3000)
    - Bloqueie portas desnecessárias
    - Permita apenas tráfego necessário
 
-5. **Mantenha o sistema atualizado**
+5. **Configure autenticação do MongoDB**
+   - Habilite autenticação
+   - Crie usuários com permissões mínimas
+
+6. **Mantenha o sistema atualizado**
    ```bash
    sudo apt update && sudo apt upgrade -y
    ```
@@ -335,11 +337,11 @@ sudo kill $(sudo lsof -t -i:3000)
 │   Port: 8001    │
 └────────┬────────┘
          │
-         │ PostgreSQL Protocol
+         │ MongoDB Protocol
          │
 ┌────────▼────────┐
-│  PostgreSQL     │
-│   Port: 5432    │
+│   MongoDB       │
+│   Port: 27017   │
 └─────────────────┘
 ```
 

@@ -99,28 +99,27 @@ rm -f /var/log/supervisor/frontend.*.log 2>/dev/null || true
 log_success "Logs removidos"
 
 # ==============================================================================
-# 4. PERGUNTAR SOBRE POSTGRESQL
+# 4. PERGUNTAR SOBRE MONGODB
 # ==============================================================================
 echo ""
-read -p "Deseja remover o PostgreSQL e TODOS os seus dados? (s/n): " -n 1 -r
+read -p "Deseja remover o MongoDB e TODOS os seus dados? (s/n): " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Ss]$ ]]; then
-    log_info "4. Removendo PostgreSQL..."
+    log_info "4. Removendo MongoDB..."
     
-    systemctl stop postgresql 2>/dev/null || true
-    systemctl disable postgresql 2>/dev/null || true
+    systemctl stop mongod 2>/dev/null || true
+    systemctl disable mongod 2>/dev/null || true
     
-    apt-get purge -y postgresql postgresql-* 2>/dev/null || true
+    apt-get purge -y mongodb-org* 2>/dev/null || true
     
-    rm -rf /var/lib/postgresql
-    rm -rf /etc/postgresql
-    rm -rf /var/log/postgresql
-    rm -f /etc/apt/sources.list.d/pgdg.list
-    rm -f /usr/share/keyrings/postgresql-archive-keyring.gpg
+    rm -rf /var/lib/mongodb
+    rm -rf /var/log/mongodb
+    rm -f /etc/apt/sources.list.d/mongodb-org-7.0.list
+    rm -f /usr/share/keyrings/mongodb-server-7.0.gpg
     
-    log_success "PostgreSQL removido"
+    log_success "MongoDB removido"
 else
-    log_info "4. PostgreSQL mantido no sistema"
+    log_info "4. MongoDB mantido no sistema"
 fi
 
 # ==============================================================================
@@ -231,8 +230,8 @@ if command -v node &> /dev/null; then
     echo "  • Node.js: $(node --version)"
 fi
 
-if command -v psql &> /dev/null; then
-    echo "  • PostgreSQL: $(psql --version)"
+if command -v mongod &> /dev/null; then
+    echo "  • MongoDB: $(mongod --version | head -1)"
 fi
 
 if command -v supervisorctl &> /dev/null; then

@@ -2,7 +2,7 @@
 
 ## 📖 Sobre o Projeto
 
-Sistema de atendimento empresarial via chat desenvolvido com FastAPI (backend), React (frontend) e PostgreSQL (banco de dados). Permite gerenciamento de conversas, usuários e atendimentos em tempo real.
+Sistema de atendimento empresarial via chat desenvolvido com FastAPI (backend), React (frontend) e MongoDB (banco de dados). Permite gerenciamento de conversas, usuários e atendimentos em tempo real.
 
 ## 🚀 Scripts de Instalação e Gerenciamento
 
@@ -17,7 +17,7 @@ sudo bash install.sh
 ```
 
 **O que faz:**
-- Instala todas as dependências (Python, Node.js, PostgreSQL, etc.)
+- Instala todas as dependências (Python, Node.js, MongoDB, etc.)
 - Configura ambiente virtual Python
 - Instala dependências do backend e frontend
 - Configura variáveis de ambiente
@@ -78,11 +78,11 @@ sudo bash uninstall.sh
 │   Port: 8001    │
 └────────┬────────┘
          │
-         │ PostgreSQL
+         │ MongoDB Protocol
          │
 ┌────────▼────────┐
-│  PostgreSQL     │
-│   Port: 5432    │
+│   MongoDB       │
+│   Port: 27017   │
 └─────────────────┘
 ```
 
@@ -143,11 +143,11 @@ sudo tail -f /var/log/supervisor/frontend.err.log
 sudo journalctl -u mongod -f
 ```
 
-### PostgreSQL
+### MongoDB
 ```bash
-sudo systemctl status postgresql  # Status
-sudo systemctl restart postgresql # Reiniciar
-sudo -u postgres psql chatplus_db # Acessar banco
+sudo systemctl status mongod    # Status
+sudo systemctl restart mongod   # Reiniciar
+mongosh chatplus_db             # Acessar banco
 ```
 
 ## 📁 Estrutura do Projeto
@@ -201,12 +201,16 @@ Antes de usar em produção:
    sudo ufw enable
    ```
 
+5. **Configure autenticação do MongoDB**
+   - Habilite autenticação em produção
+   - Crie usuários com permissões mínimas necessárias
+
 ## 🐛 Solução de Problemas
 
 ### Backend não inicia
 ```bash
 sudo tail -n 50 /var/log/supervisor/backend.err.log
-sudo systemctl status postgresql
+sudo systemctl status mongod
 ```
 
 ### Frontend não inicia
@@ -215,22 +219,24 @@ sudo tail -n 50 /var/log/supervisor/frontend.err.log
 cd /app/frontend && yarn install
 ```
 
-### PostgreSQL não conecta
+### MongoDB não conecta
 ```bash
-sudo systemctl restart postgresql
-sudo -u postgres psql -c "SELECT 1;" chatplus_db
+sudo systemctl restart mongod
+mongosh --eval "db.adminCommand('ping')"
 ```
 
 ### Portas em uso
 ```bash
 sudo lsof -i :3000  # Frontend
 sudo lsof -i :8001  # Backend
-sudo lsof -i :5432  # PostgreSQL
+sudo lsof -i :27017 # MongoDB
 ```
 
 ## 📚 Documentação
 
 - [Guia de Instalação Completo](INSTALACAO.md)
+- [Guia Rápido de Referência](GUIA-RAPIDO.md)
+- [Índice de Arquivos](INDEX.md)
 - [Documentação da API](http://localhost:8001/docs) (após instalação)
 
 ## 🤝 Contribuindo

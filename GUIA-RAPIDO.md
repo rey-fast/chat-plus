@@ -3,7 +3,7 @@
 ## 🚀 Scripts Disponíveis
 
 | Script | Descrição | Comando |
-|--------|-----------|---------|
+|--------|-----------|--------|
 | `install.sh` | Instalação completa do sistema | `sudo bash install.sh` |
 | `check-system.sh` | Verificar status do sistema | `bash check-system.sh` |
 | `backup.sh` | Criar backup completo | `sudo bash backup.sh` |
@@ -50,30 +50,29 @@ sudo journalctl -u mongod -f
 sudo tail -n 100 /var/log/supervisor/backend.err.log
 ```
 
-### PostgreSQL
+### MongoDB
 ```bash
 # Status
-sudo systemctl status postgresql
+sudo systemctl status mongod
 
 # Reiniciar
-sudo systemctl restart postgresql
+sudo systemctl restart mongod
 
 # Parar
-sudo systemctl stop postgresql
+sudo systemctl stop mongod
 
 # Iniciar
-sudo systemctl start postgresql
+sudo systemctl start mongod
 
 # Acessar shell
-sudo -u postgres psql chatplus_db
+mongosh chatplus_db
 
-# Dentro do PostgreSQL shell
-\dt                              # Listar tabelas
-SELECT * FROM users;             # Listar usuários
-SELECT COUNT(*) FROM users;      # Contar usuários
-\l                               # Listar bancos de dados
-\du                              # Listar usuários do PostgreSQL
-\q                               # Sair
+# Dentro do MongoDB shell
+show collections              # Listar collections
+db.users.find()               # Listar usuários
+db.users.countDocuments()     # Contar usuários
+show dbs                      # Listar bancos de dados
+exit                          # Sair
 ```
 
 ### Verificar Portas
@@ -84,7 +83,7 @@ sudo ss -tulpn
 # Verificar porta específica
 sudo lsof -i :3000   # Frontend
 sudo lsof -i :8001   # Backend
-sudo lsof -i :5432   # PostgreSQL
+sudo lsof -i :27017  # MongoDB
 
 # Matar processo em uma porta
 sudo kill $(sudo lsof -t -i:3000)
@@ -114,11 +113,8 @@ cat /etc/os-release
 sudo nano /app/backend/.env
 
 # Principais variáveis:
-# DB_HOST - Host do PostgreSQL
+# MONGO_URL - URL de conexão do MongoDB
 # DB_NAME - Nome do banco de dados
-# DB_USER - Usuário do PostgreSQL
-# DB_PASSWORD - Senha do PostgreSQL
-# DB_PORT - Porta do PostgreSQL
 # JWT_SECRET_KEY - Chave secreta JWT
 # CORS_ORIGINS - Origens permitidas
 
@@ -184,8 +180,8 @@ sudo supervisorctl restart frontend
 # 1. Ver logs de erro
 sudo tail -n 50 /var/log/supervisor/backend.err.log
 
-# 2. Verificar PostgreSQL
-sudo systemctl status postgresql
+# 2. Verificar MongoDB
+sudo systemctl status mongod
 
 # 3. Testar Python
 source /root/.venv/bin/activate
@@ -217,22 +213,22 @@ rm -rf node_modules
 yarn install
 ```
 
-### PostgreSQL não conecta
+### MongoDB não conecta
 ```bash
 # 1. Verificar status
-sudo systemctl status postgresql
+sudo systemctl status mongod
 
 # 2. Ver logs
-sudo journalctl -u postgresql -n 50
+sudo journalctl -u mongod -n 50
 
 # 3. Reiniciar
-sudo systemctl restart postgresql
+sudo systemctl restart mongod
 
 # 4. Testar conexão
-sudo -u postgres psql -c "SELECT 1;" chatplus_db
+mongosh --eval "db.adminCommand('ping')"
 
 # 5. Verificar porta
-sudo lsof -i :5432
+sudo lsof -i :27017
 ```
 
 ### Serviço não responde
@@ -260,7 +256,7 @@ bash /app/check-system.sh
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8001
 - API Docs: http://localhost:8001/docs
-- PostgreSQL: localhost:5432 (Database: chatplus_db)
+- MongoDB: localhost:27017 (Database: chatplus_db)
 - **Credenciais padrão:** admin / admin123
 
 ### Externo (substitua SEU_IP)
@@ -361,7 +357,7 @@ bash /app/check-system.sh
 ### Reiniciar Tudo
 ```bash
 sudo supervisorctl restart all
-sudo systemctl restart postgresql
+sudo systemctl restart mongod
 ```
 
 ### Limpar e Reinstalar Frontend
@@ -372,13 +368,12 @@ yarn install
 sudo supervisorctl restart frontend
 ```
 
-### Resetar PostgreSQL
+### Resetar MongoDB
 ```bash
 # ⚠️ CUIDADO: Apaga todos os dados!
-sudo systemctl stop postgresql
-sudo -u postgres psql -c "DROP DATABASE chatplus_db;"
-sudo -u postgres psql -c "CREATE DATABASE chatplus_db;"
-sudo systemctl start postgresql
+sudo systemctl stop mongod
+mongosh --eval "db.dropDatabase()" chatplus_db
+sudo systemctl start mongod
 
 # Recriar estrutura e admin
 cd /app/backend

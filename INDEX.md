@@ -17,7 +17,7 @@ sudo bash install.sh
 
 **O que faz:**
 - ✅ Atualiza o sistema Ubuntu 24.04.3 LTS
-- ✅ Instala PostgreSQL 16
+- ✅ Instala MongoDB 7.0+
 - ✅ Instala Python 3.11+ e cria ambiente virtual
 - ✅ Instala Node.js 18+ e Yarn
 - ✅ Instala todas as dependências (backend + frontend)
@@ -67,7 +67,7 @@ sudo bash backup.sh /mnt/backups
 
 **O que inclui:**
 - 💾 Todo o código fonte (/app)
-- 💾 Banco de dados PostgreSQL (dump completo)
+- 💾 Banco de dados MongoDB (dump completo)
 - 💾 Configurações do Supervisor
 - 💾 Lista de pacotes Python instalados
 - 💾 Logs do sistema
@@ -89,7 +89,7 @@ sudo bash uninstall.sh
 
 **Remove (com confirmação):**
 - ❌ Serviços do Supervisor
-- ❌ PostgreSQL e dados (opcional)
+- ❌ MongoDB e dados (opcional)
 - ❌ Node.js e Yarn (opcional)
 - ❌ Ambiente virtual Python (opcional)
 - ❌ Diretório /app (opcional)
@@ -254,7 +254,7 @@ Navegue facilmente por todos os recursos disponíveis.
 ## 🎯 Qual Script Usar?
 
 | Situação | Script | Comando |
-|----------|--------|---------|
+|----------|--------|--------|
 | Primeira vez instalando | `install.sh` | `sudo bash install.sh` |
 | Verificar se está tudo ok | `check-system.sh` | `bash check-system.sh` |
 | Fazer backup antes de mudanças | `backup.sh` | `sudo bash backup.sh` |
@@ -282,7 +282,7 @@ sudo tail -f /var/log/supervisor/frontend.err.log
 bash /app/check-system.sh
 
 # MongoDB status
-sudo systemctl status postgresql
+sudo systemctl status mongod
 ```
 
 ---
@@ -300,8 +300,9 @@ sudo systemctl status postgresql
 ## 🔄 Histórico de Versões
 
 | Versão | Data | Descrição |
-|--------|------|-----------|
-| 1.0 | 2025 | Versão inicial com todos os scripts |
+|--------|------|----------|
+| 1.0 | 2025 | Versão inicial com PostgreSQL |
+| 2.0 | 2025 | Migração para MongoDB |
 
 ---
 

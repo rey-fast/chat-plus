@@ -1,25 +1,36 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
 import logging
 from pathlib import Path
 
-from database import init_database, get_user_by_login, verify_password
+from database import connect_to_mongodb, close_mongodb_connection, get_user_by_login, verify_password
 from auth import create_access_token, verify_token
 from models import LoginRequest, LoginResponse, UserResponse
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# Initialize database on startup
-try:
-    init_database()
-except Exception as e:
-    logging.error(f"Failed to initialize database: {e}")
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
-# Create the main app
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan - connect/disconnect MongoDB"""
+    # Startup
+    await connect_to_mongodb()
+    yield
+    # Shutdown
+    await close_mongodb_connection()
+
+# Create the main app with lifespan
+app = FastAPI(lifespan=lifespan)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -27,7 +38,7 @@ api_router = APIRouter(prefix="/api")
 @api_router.post("/auth/login", response_model=LoginResponse)
 async def login(credentials: LoginRequest):
     """Login endpoint - accepts email or username"""
-    user = get_user_by_login(credentials.login)
+    user = await get_user_by_login(credentials.login)
     
     if not user or not verify_password(credentials.password, user['password_hash']):
         raise HTTPException(status_code=401, detail="Credenciais inválidas")
@@ -71,10 +82,3 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)

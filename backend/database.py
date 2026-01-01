@@ -1,87 +1,99 @@
-import psycopg2
 import os
 from datetime import datetime, timezone
 from passlib.context import CryptContext
 import logging
+from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Optional
+import uuid
 
 logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_db_connection():
-    """Create PostgreSQL connection"""
-    conn = psycopg2.connect(
-        host=os.environ.get('DB_HOST', 'localhost'),
-        database=os.environ.get('DB_NAME', 'chatplus_db'),
-        user=os.environ.get('DB_USER', 'postgres'),
-        password=os.environ.get('DB_PASSWORD', 'postgres'),
-        port=os.environ.get('DB_PORT', '5432')
-    )
-    return conn
+# MongoDB connection
+client: Optional[AsyncIOMotorClient] = None
+db = None
 
-def init_database():
-    """Initialize database schema and create admin user"""
+async def connect_to_mongodb():
+    """Connect to MongoDB"""
+    global client, db
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
+        db_name = os.environ.get('DB_NAME', 'chatplus_db')
         
-        # Create users table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                username VARCHAR(100) UNIQUE NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255) NOT NULL,
-                role VARCHAR(50) DEFAULT 'user',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        client = AsyncIOMotorClient(mongo_url)
+        db = client[db_name]
+        
+        # Test connection
+        await client.admin.command('ping')
+        logger.info(f"Connected to MongoDB: {db_name}")
+        
+        # Initialize database (create indexes and admin user)
+        await init_database()
+        
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {e}")
+        raise
+
+async def close_mongodb_connection():
+    """Close MongoDB connection"""
+    global client
+    if client:
+        client.close()
+        logger.info("MongoDB connection closed")
+
+def get_database():
+    """Get database instance"""
+    return db
+
+async def init_database():
+    """Initialize database indexes and create admin user"""
+    try:
+        # Create indexes for users collection
+        await db.users.create_index("username", unique=True)
+        await db.users.create_index("email", unique=True)
         
         # Check if admin exists
-        cursor.execute("SELECT id FROM users WHERE username = %s", ('admin',))
-        if cursor.fetchone() is None:
+        admin = await db.users.find_one({"username": "admin"})
+        if admin is None:
             # Create admin user
             password_hash = pwd_context.hash('admin123')
-            cursor.execute("""
-                INSERT INTO users (name, username, email, password_hash, role)
-                VALUES (%s, %s, %s, %s, %s)
-            """, ('Administrador', 'admin', 'admin@exemplo.com.br', password_hash, 'admin'))
+            admin_user = {
+                "id": str(uuid.uuid4()),
+                "name": "Administrador",
+                "username": "admin",
+                "email": "admin@exemplo.com.br",
+                "password_hash": password_hash,
+                "role": "admin",
+                "created_at": datetime.now(timezone.utc)
+            }
+            await db.users.insert_one(admin_user)
             logger.info("Admin user created successfully")
         
-        conn.commit()
-        cursor.close()
-        conn.close()
         logger.info("Database initialized successfully")
         
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
         raise
 
-def get_user_by_login(login: str):
+async def get_user_by_login(login: str):
     """Get user by email or username"""
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        user = await db.users.find_one({
+            "$or": [
+                {"email": login},
+                {"username": login}
+            ]
+        })
         
-        cursor.execute("""
-            SELECT id, name, username, email, password_hash, role, created_at
-            FROM users
-            WHERE email = %s OR username = %s
-        """, (login, login))
-        
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        
-        if result:
+        if user:
             return {
-                'id': result[0],
-                'name': result[1],
-                'username': result[2],
-                'email': result[3],
-                'password_hash': result[4],
-                'role': result[5],
-                'created_at': result[6]
+                'id': user.get('id'),
+                'name': user.get('name'),
+                'username': user.get('username'),
+                'email': user.get('email'),
+                'password_hash': user.get('password_hash'),
+                'role': user.get('role'),
+                'created_at': user.get('created_at')
             }
         return None
         

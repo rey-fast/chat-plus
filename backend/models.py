@@ -11,7 +11,7 @@ class LoginResponse(BaseModel):
     user: dict
 
 class UserResponse(BaseModel):
-    id: int
+    id: str
     name: str
     username: str
     email: str
