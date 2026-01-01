@@ -5,7 +5,7 @@
 # Compatível com: Ubuntu 24.04.3 LTS
 # 
 # Este script instala e configura todos os componentes necessários:
-# - MongoDB
+# - PostgreSQL 16
 # - Python 3.11+ e ambiente virtual
 # - Node.js 18+ e Yarn
 # - Supervisor para gerenciamento de processos
@@ -122,42 +122,53 @@ fi
 log_success "Python instalado e configurado"
 
 # ==============================================================================
-# 4. INSTALAR MONGODB
+# 4. INSTALAR POSTGRESQL
 # ==============================================================================
-log_info "4. Instalando MongoDB..."
+log_info "4. Instalando PostgreSQL 16..."
 
-# Importar chave pública do MongoDB
-if [ ! -f /usr/share/keyrings/mongodb-server-7.0.gpg ]; then
-    log_info "Importando chave GPG do MongoDB..."
-    curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
-        gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+# Adicionar repositório oficial do PostgreSQL
+if [ ! -f /usr/share/keyrings/postgresql-archive-keyring.gpg ]; then
+    log_info "Importando chave GPG do PostgreSQL..."
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | \
+        gpg --dearmor -o /usr/share/keyrings/postgresql-archive-keyring.gpg
 fi
 
-# Adicionar repositório do MongoDB
-echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | \
-    tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | \
+    tee /etc/apt/sources.list.d/pgdg.list
 
 apt-get update
-apt-get install -y mongodb-org
+apt-get install -y postgresql-16 postgresql-contrib-16
 
-# Iniciar e habilitar MongoDB
+# Iniciar e habilitar PostgreSQL
 systemctl daemon-reload
-systemctl enable mongod
-systemctl start mongod
+systemctl enable postgresql
+systemctl start postgresql
 
-# Verificar se MongoDB está rodando
-if systemctl is-active --quiet mongod; then
-    log_success "MongoDB instalado e rodando"
+# Verificar se PostgreSQL está rodando
+if systemctl is-active --quiet postgresql; then
+    log_success "PostgreSQL instalado e rodando"
 else
-    log_warning "MongoDB instalado mas não está rodando. Tentando iniciar..."
-    systemctl restart mongod
+    log_warning "PostgreSQL instalado mas não está rodando. Tentando iniciar..."
+    systemctl restart postgresql
     sleep 3
-    if systemctl is-active --quiet mongod; then
-        log_success "MongoDB iniciado com sucesso"
+    if systemctl is-active --quiet postgresql; then
+        log_success "PostgreSQL iniciado com sucesso"
     else
-        log_error "Falha ao iniciar MongoDB. Verifique os logs com: journalctl -u mongod"
+        log_error "Falha ao iniciar PostgreSQL. Verifique os logs com: journalctl -u postgresql"
+        exit 1
     fi
 fi
+
+# Configurar senha do usuário postgres
+log_info "Configurando senha do usuário postgres..."
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'postgres';" 2>/dev/null || true
+
+# Criar banco de dados
+log_info "Criando banco de dados chatplus_db..."
+sudo -u postgres psql -c "CREATE DATABASE chatplus_db;" 2>/dev/null || \
+    log_info "Banco de dados chatplus_db já existe"
+
+log_success "PostgreSQL configurado com sucesso"
 
 # ==============================================================================
 # 5. INSTALAR NODE.JS E YARN
@@ -246,8 +257,11 @@ log_info "8. Configurando variáveis de ambiente..."
 if [ ! -f "$BACKEND_DIR/.env" ]; then
     log_info "Criando arquivo .env do backend..."
     cat > "$BACKEND_DIR/.env" << 'EOF'
-MONGO_URL="mongodb://localhost:27017"
-DB_NAME="chatplus_db"
+DB_HOST=localhost
+DB_NAME=chatplus_db
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_PORT=5432
 CORS_ORIGINS="*"
 JWT_SECRET_KEY=your-secret-key-change-in-production
 EOF
@@ -355,15 +369,37 @@ else
 fi
 
 # ==============================================================================
-# 12. CRIAR USUÁRIO ADMIN (OPCIONAL)
+# 12. CRIAR BANCO DE DADOS E USUÁRIO ADMIN
 # ==============================================================================
-log_info "12. Configuração de usuário administrador..."
+log_info "12. Criando estrutura do banco e usuário administrador..."
 
+# Aguardar backend iniciar completamente
+log_info "Aguardando backend inicializar..."
+sleep 10
+
+# Executar script de criação do admin
 if [ -f "$BACKEND_DIR/create_admin.py" ]; then
-    log_info "Script de criação de admin encontrado"
-    log_warning "Execute manualmente: cd $BACKEND_DIR && $VENV_DIR/bin/python create_admin.py"
+    log_info "Executando script de criação do admin..."
+    cd "$BACKEND_DIR"
+    $VENV_DIR/bin/python create_admin.py
+    
+    if [ $? -eq 0 ]; then
+        log_success "Usuário administrador criado com sucesso!"
+        echo ""
+        log_info "═══════════════════════════════════════════════════════"
+        log_info "CREDENCIAIS DE ACESSO PADRÃO:"
+        echo "  Username: admin"
+        echo "  Email:    admin@exemplo.com.br"
+        echo "  Senha:    admin123"
+        log_warning "⚠️  ALTERE A SENHA PADRÃO APÓS O PRIMEIRO LOGIN!"
+        log_info "═══════════════════════════════════════════════════════"
+        echo ""
+    else
+        log_warning "Erro ao criar usuário admin. Execute manualmente:"
+        log_warning "cd $BACKEND_DIR && $VENV_DIR/bin/python create_admin.py"
+    fi
 else
-    log_info "Script de criação de admin não encontrado, pulando..."
+    log_warning "Script create_admin.py não encontrado"
 fi
 
 # ==============================================================================
@@ -379,7 +415,7 @@ echo ""
 log_info "📋 INFORMAÇÕES DO SISTEMA:"
 echo "  • Frontend: http://localhost:3000"
 echo "  • Backend:  http://localhost:8001"
-echo "  • MongoDB:  mongodb://localhost:27017"
+echo "  • PostgreSQL: localhost:5432 (Database: chatplus_db)"
 echo ""
 log_info "🌐 ACESSO EXTERNO (se aplicável):"
 echo "  • Frontend: http://$SERVER_IP:3000"
@@ -392,7 +428,8 @@ echo "  • Reiniciar frontend:    supervisorctl restart frontend"
 echo "  • Reiniciar tudo:        supervisorctl restart all"
 echo "  • Ver logs do backend:   tail -f /var/log/supervisor/backend.*.log"
 echo "  • Ver logs do frontend:  tail -f /var/log/supervisor/frontend.*.log"
-echo "  • Status do MongoDB:     systemctl status mongod"
+echo "  • Status do PostgreSQL:  systemctl status postgresql"
+echo "  • Acessar PostgreSQL:    sudo -u postgres psql chatplus_db"
 echo ""
 log_info "📁 DIRETÓRIOS:"
 echo "  • Projeto:  $PROJECT_DIR"
@@ -401,11 +438,12 @@ echo "  • Frontend: $FRONTEND_DIR"
 echo "  • Venv:     $VENV_DIR"
 echo ""
 log_warning "⚠️  PRÓXIMOS PASSOS:"
-echo "  1. Edite as variáveis de ambiente em $BACKEND_DIR/.env e $FRONTEND_DIR/.env"
-echo "  2. Altere o JWT_SECRET_KEY em $BACKEND_DIR/.env para produção"
-echo "  3. Configure o REACT_APP_BACKEND_URL no frontend para o IP/domínio correto"
-echo "  4. Crie um usuário administrador: cd $BACKEND_DIR && $VENV_DIR/bin/python create_admin.py"
-echo "  5. Configure o firewall se necessário: ufw enable"
+echo "  1. Acesse o sistema: http://localhost:3000"
+echo "  2. Faça login com as credenciais padrão (admin/admin123)"
+echo "  3. ALTERE A SENHA PADRÃO imediatamente!"
+echo "  4. Edite o JWT_SECRET_KEY em $BACKEND_DIR/.env para produção"
+echo "  5. Configure o REACT_APP_BACKEND_URL no frontend se necessário"
+echo "  6. Configure o firewall se necessário: ufw enable"
 echo ""
 
 # Verificar se os serviços estão rodando
@@ -422,10 +460,10 @@ else
     log_warning "✗ Frontend não está respondendo. Verifique os logs."
 fi
 
-if systemctl is-active --quiet mongod; then
-    log_success "✓ MongoDB está rodando"
+if systemctl is-active --quiet postgresql; then
+    log_success "✓ PostgreSQL está rodando"
 else
-    log_warning "✗ MongoDB não está rodando"
+    log_warning "✗ PostgreSQL não está rodando"
 fi
 
 echo ""

@@ -68,20 +68,26 @@ else
 fi
 
 # ==============================================================================
-# 2. BACKUP DO MONGODB
+# 2. BACKUP DO POSTGRESQL
 # ==============================================================================
-log_info "2. Fazendo backup do MongoDB..."
+log_info "2. Fazendo backup do PostgreSQL..."
 
-if command -v mongodump &> /dev/null; then
-    mkdir -p "$BACKUP_DIR/mongodb_dump"
+if command -v pg_dump &> /dev/null; then
+    mkdir -p "$BACKUP_DIR/postgresql_dump"
     
-    # Dump de todos os bancos de dados
-    mongodump --out="$BACKUP_DIR/mongodb_dump" 2>/dev/null || \
-    mongodump --host=localhost --port=27017 --out="$BACKUP_DIR/mongodb_dump"
+    # Dump do banco de dados chatplus_db
+    log_info "Fazendo dump do banco chatplus_db..."
+    sudo -u postgres pg_dump chatplus_db > "$BACKUP_DIR/postgresql_dump/chatplus_db.sql" 2>/dev/null || \
+    PGPASSWORD=postgres pg_dump -h localhost -U postgres chatplus_db > "$BACKUP_DIR/postgresql_dump/chatplus_db.sql"
     
-    log_success "Backup do MongoDB criado"
+    # Também fazer dump de todos os bancos (opcional)
+    log_info "Fazendo dump global do PostgreSQL..."
+    sudo -u postgres pg_dumpall > "$BACKUP_DIR/postgresql_dump/pg_dumpall.sql" 2>/dev/null || \
+    PGPASSWORD=postgres pg_dumpall -h localhost -U postgres > "$BACKUP_DIR/postgresql_dump/pg_dumpall.sql"
+    
+    log_success "Backup do PostgreSQL criado"
 else
-    log_warning "mongodump não encontrado, pulando backup do MongoDB"
+    log_warning "pg_dump não encontrado, pulando backup do PostgreSQL"
 fi
 
 # ==============================================================================
@@ -141,7 +147,7 @@ $(cat /etc/os-release)
 # Versões de Software
 Python: $(python3 --version 2>&1)
 Node.js: $(node --version 2>&1)
-MongoDB: $(mongod --version 2>&1 | head -n 1)
+PostgreSQL: $(psql --version 2>&1)
 Yarn: $(yarn --version 2>&1)
 
 # Status dos Serviços no momento do backup
@@ -235,13 +241,20 @@ else
     log_warning "Backup do código não encontrado"
 fi
 
-# Restaurar MongoDB
-if [ -d "$BACKUP_DIR/mongodb_dump" ]; then
-    log_info "Restaurando MongoDB..."
-    mongorestore "$BACKUP_DIR/mongodb_dump" --drop
-    log_success "MongoDB restaurado"
+# Restaurar PostgreSQL
+if [ -d "$BACKUP_DIR/postgresql_dump" ]; then
+    log_info "Restaurando PostgreSQL..."
+    
+    # Restaurar banco chatplus_db
+    if [ -f "$BACKUP_DIR/postgresql_dump/chatplus_db.sql" ]; then
+        sudo -u postgres psql -c "DROP DATABASE IF EXISTS chatplus_db;" 2>/dev/null || true
+        sudo -u postgres psql -c "CREATE DATABASE chatplus_db;" 2>/dev/null || true
+        sudo -u postgres psql chatplus_db < "$BACKUP_DIR/postgresql_dump/chatplus_db.sql" 2>/dev/null || \
+        PGPASSWORD=postgres psql -h localhost -U postgres chatplus_db < "$BACKUP_DIR/postgresql_dump/chatplus_db.sql"
+        log_success "PostgreSQL restaurado"
+    fi
 else
-    log_warning "Backup do MongoDB não encontrado"
+    log_warning "Backup do PostgreSQL não encontrado"
 fi
 
 # Restaurar configuração do Supervisor
@@ -324,7 +337,7 @@ fi
 echo ""
 log_info "📋 Conteúdo do Backup:"
 echo "  • Código fonte (/app)"
-echo "  • Banco de dados MongoDB"
+echo "  • Banco de dados PostgreSQL"
 echo "  • Configurações do Supervisor"
 echo "  • Lista de pacotes Python"
 echo "  • Logs do sistema"
