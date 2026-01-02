@@ -101,3 +101,160 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Sistema de atendimento corporativo via chat com painel admin clone fiel da imagem, gestão de agentes CRUD, e painel do agente placeholder. Redirecionamento por role após login."
+
+backend:
+  - task: "POST /api/auth/login - Login com email ou usuário"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Endpoint de login existente, agora verifica se usuário está ativo"
+
+  - task: "GET /api/auth/me - Obter usuário atual"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Endpoint existente para validar token"
+
+  - task: "GET /api/agents - Listar agentes (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para listar agentes com paginação e busca"
+
+  - task: "POST /api/agents - Criar agente (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para criar agente com validação de username/email únicos"
+
+  - task: "PUT /api/agents/{id} - Atualizar agente (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para atualizar agente"
+
+  - task: "DELETE /api/agents/{id} - Excluir agente (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para excluir agente"
+
+  - task: "POST /api/agents/bulk-delete - Excluir múltiplos agentes"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para exclusão em lote"
+
+frontend:
+  - task: "Login Page - Redirecionamento por role"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/Login.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Login atualizado para redirecionar admin para /admin e agent para /agent"
+
+  - task: "Admin Layout - Sidebar e Topbar"
+    implemented: true
+    working: NA
+    file: "frontend/src/components/admin/AdminLayout.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Layout admin com sidebar escura (#1A3F56) e topbar clone da imagem"
+
+  - task: "Página Agentes - Tabela CRUD"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/admin/AgentsPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Página de agentes com tabela, busca, paginação, modais criar/editar/excluir"
+
+  - task: "Painel do Agente - Placeholder"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/AgentDashboard.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Painel simples para agentes com header e mensagem 'em construção'"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "POST /api/auth/login - Login com email ou usuário"
+    - "GET /api/agents - Listar agentes (admin only)"
+    - "POST /api/agents - Criar agente (admin only)"
+    - "PUT /api/agents/{id} - Atualizar agente (admin only)"
+    - "DELETE /api/agents/{id} - Excluir agente (admin only)"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: "Implementei backend completo com CRUD de agentes e frontend com painel admin clone da imagem. Credenciais de teste: admin / admin123. Testar todos os endpoints de agentes."

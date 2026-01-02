@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, MessageCircle } from 'lucide-react';
 import ImageCarousel from '../components/ImageCarousel';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-
 const Login = () => {
-  const [login, setLogin] = useState('');
+  const [loginValue, setLoginValue] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login, user } = useAuth();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else if (user.role === 'agent') {
+        navigate('/agent');
+      }
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,17 +29,14 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/auth/login`, {
-        login,
-        password
-      });
-
-      // Store token
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      const userData = await login(loginValue, password);
       
-      // Redirect to admin
-      navigate('/admin');
+      // Redirect based on role
+      if (userData.role === 'admin') {
+        navigate('/admin');
+      } else if (userData.role === 'agent') {
+        navigate('/agent');
+      }
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao fazer login');
     } finally {
@@ -55,9 +62,9 @@ const Login = () => {
               <Mail className="input-icon" size={20} />
               <input
                 type="text"
-                placeholder="E-mail"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
+                placeholder="E-mail ou Usuário"
+                value={loginValue}
+                onChange={(e) => setLoginValue(e.target.value)}
                 className="form-input"
                 data-testid="login-input"
                 required
