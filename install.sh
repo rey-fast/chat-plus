@@ -19,8 +19,8 @@ FRONTEND_PORT=3000
 SERVICE_BACKEND="chat-backend"
 SERVICE_FRONTEND="chat-frontend"
 
-# SSH port (do not open 22)
-SSH_PORT=4747
+# SSH port
+SSH_PORT=22
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_SRC="$SCRIPT_DIR/backend"
@@ -65,7 +65,7 @@ install_common_packages() {
 }
 
 #############################
-# FIREWALL (do not open 22)
+# FIREWALL
 #############################
 firewall_allow_http_https() {
     log "Liberando temporariamente 80/443 para Let's Encrypt..."
@@ -74,7 +74,7 @@ firewall_allow_http_https() {
 }
 
 configure_firewall() {
-    log "Aplicando regras de firewall (não abre 22)..."
+    log "Aplicando regras de firewall..."
     ufw default deny incoming || true
     ufw default allow outgoing || true
     ufw allow "${SSH_PORT}/tcp"
