@@ -525,6 +525,7 @@ if not hasattr(_bcrypt, "__about__"):
 from passlib.context import CryptContext
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
+from datetime import datetime, timezone
 
 if not os.path.exists("$BACKEND_DIR/.env"):
     print("Arquivo $BACKEND_DIR/.env não encontrado — crie-o antes. Abortando."); sys.exit(3)
@@ -554,7 +555,8 @@ try:
             "username": "admin",
             "email": "admin@exemplo.com.br",
             "password_hash": hashed,
-            "role": "admin"
+            "role": "admin",
+			"created_at": datetime.now(timezone.utc)
         })
         print("admin criado com sucesso")
 
