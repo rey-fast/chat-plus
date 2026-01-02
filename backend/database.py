@@ -471,3 +471,177 @@ async def delete_admins_bulk(admin_ids: List[str], current_user_id: str = None) 
     except Exception as e:
         logger.error(f"Error deleting admins in bulk: {e}")
         raise
+
+
+# Channel CRUD operations
+async def get_channels(page: int = 1, per_page: int = 10, search: str = None) -> dict:
+    """Get all channels with pagination"""
+    try:
+        query = {}
+        
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"type": {"$regex": search, "$options": "i"}}
+            ]
+        
+        total = await db.channels.count_documents(query)
+        skip = (page - 1) * per_page
+        
+        cursor = db.channels.find(query).skip(skip).limit(per_page).sort("created_at", -1)
+        channels = []
+        
+        async for channel in cursor:
+            channels.append({
+                'id': channel.get('id'),
+                'name': channel.get('name'),
+                'type': channel.get('type'),
+                'status': channel.get('status', 'connected'),
+                'is_active': channel.get('is_active', True),
+                'flow_id': channel.get('flow_id'),
+                'flow_name': channel.get('flow_name', 'Padrão'),
+                'chat_link': channel.get('chat_link'),
+                'created_at': channel.get('created_at')
+            })
+        
+        return {
+            'channels': channels,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting channels: {e}")
+        raise
+
+async def get_channel_by_id(channel_id: str) -> dict:
+    """Get a single channel by ID"""
+    try:
+        channel = await db.channels.find_one({"id": channel_id})
+        if channel:
+            return {
+                'id': channel.get('id'),
+                'name': channel.get('name'),
+                'type': channel.get('type'),
+                'status': channel.get('status', 'connected'),
+                'is_active': channel.get('is_active', True),
+                'flow_id': channel.get('flow_id'),
+                'flow_name': channel.get('flow_name', 'Padrão'),
+                'chat_link': channel.get('chat_link'),
+                'created_at': channel.get('created_at')
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Error getting channel: {e}")
+        raise
+
+async def create_channel(channel_data: dict, base_url: str = "") -> dict:
+    """Create a new channel"""
+    try:
+        channel_id = str(uuid.uuid4())
+        
+        # Generate chat link for site type channels
+        chat_link = None
+        if channel_data['type'] == 'site':
+            chat_link = f"{base_url}/chat/{channel_id}"
+        
+        new_channel = {
+            "id": channel_id,
+            "name": channel_data['name'],
+            "type": channel_data['type'],
+            "status": "connected",
+            "is_active": True,
+            "flow_id": None,
+            "flow_name": "Padrão",
+            "chat_link": chat_link,
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        await db.channels.insert_one(new_channel)
+        
+        return {
+            'id': new_channel['id'],
+            'name': new_channel['name'],
+            'type': new_channel['type'],
+            'status': new_channel['status'],
+            'is_active': new_channel['is_active'],
+            'flow_id': new_channel['flow_id'],
+            'flow_name': new_channel['flow_name'],
+            'chat_link': new_channel['chat_link'],
+            'created_at': new_channel['created_at']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating channel: {e}")
+        raise
+
+async def update_channel(channel_id: str, channel_data: dict) -> dict:
+    """Update a channel"""
+    try:
+        # Check if channel exists
+        channel = await db.channels.find_one({"id": channel_id})
+        if not channel:
+            raise ValueError("Canal não encontrado")
+        
+        update_data = {}
+        
+        if channel_data.get('name'):
+            update_data['name'] = channel_data['name']
+        
+        if 'is_active' in channel_data and channel_data['is_active'] is not None:
+            update_data['is_active'] = channel_data['is_active']
+        
+        if 'flow_id' in channel_data:
+            update_data['flow_id'] = channel_data['flow_id']
+            # TODO: Get flow name from flows collection when implemented
+            update_data['flow_name'] = 'Padrão' if not channel_data['flow_id'] else 'Personalizado'
+        
+        if update_data:
+            await db.channels.update_one(
+                {"id": channel_id},
+                {"$set": update_data}
+            )
+        
+        # Get updated channel
+        updated = await db.channels.find_one({"id": channel_id})
+        
+        return {
+            'id': updated.get('id'),
+            'name': updated.get('name'),
+            'type': updated.get('type'),
+            'status': updated.get('status', 'connected'),
+            'is_active': updated.get('is_active', True),
+            'flow_id': updated.get('flow_id'),
+            'flow_name': updated.get('flow_name', 'Padrão'),
+            'chat_link': updated.get('chat_link'),
+            'created_at': updated.get('created_at')
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error updating channel: {e}")
+        raise
+
+async def delete_channel(channel_id: str) -> bool:
+    """Delete a channel"""
+    try:
+        result = await db.channels.delete_one({"id": channel_id})
+        return result.deleted_count > 0
+        
+    except Exception as e:
+        logger.error(f"Error deleting channel: {e}")
+        raise
+
+async def delete_channels_bulk(channel_ids: List[str]) -> int:
+    """Delete multiple channels"""
+    try:
+        result = await db.channels.delete_many({
+            "id": {"$in": channel_ids}
+        })
+        return result.deleted_count
+        
+    except Exception as e:
+        logger.error(f"Error deleting channels in bulk: {e}")
+        raise

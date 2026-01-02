@@ -75,3 +75,31 @@ class AdminListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+# Channel Models
+class ChannelCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    type: str = Field(..., pattern="^(site|whatsapp|telegram|instagram|facebook|email)$")
+
+class ChannelUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    is_active: Optional[bool] = None
+    flow_id: Optional[str] = None
+
+class ChannelResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    status: str
+    is_active: bool
+    flow_id: Optional[str] = None
+    flow_name: Optional[str] = None
+    chat_link: Optional[str] = None
+    created_at: datetime
+
+class ChannelListResponse(BaseModel):
+    channels: List[ChannelResponse]
+    total: int
+    page: int
+    per_page: int

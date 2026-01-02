@@ -270,6 +270,78 @@ backend:
         agent: "testing"
         comment: "✅ PASSED - Endpoint funcionando corretamente. Exclusão em lote funcionando. Criou 2 admins de teste e excluiu ambos com sucesso (deleted_count=2)."
 
+  - task: "GET /api/channels - Listar canais (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para listar canais com paginação e busca"
+
+  - task: "POST /api/channels - Criar canal (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para criar canal. Gera UUID e link de chat automaticamente para tipo site"
+
+  - task: "PUT /api/channels/{id} - Atualizar canal (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para atualizar canal (nome e is_active)"
+
+  - task: "PATCH /api/channels/{id}/toggle-active - Toggle habilitado"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Endpoint para alternar status de habilitado do canal"
+
+  - task: "DELETE /api/channels/{id} - Excluir canal (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para excluir canal"
+
+  - task: "GET /api/channels/{id} - Obter canal por ID (público)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Endpoint público para obter dados do canal (usado pela página de chat)"
+
 frontend:
   - task: "Login Page - Redirecionamento por role"
     implemented: true
@@ -334,6 +406,30 @@ frontend:
         agent: "main"
         comment: "Página de administradores clone de AgentsPage com tabela, busca, paginação, modais criar/editar/excluir e proteção contra auto-exclusão/desativação"
 
+  - task: "Página Canais - Tabela CRUD com interface clone da imagem"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/admin/ChannelsPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Nova página de canais com design pixel-perfect baseado na imagem. Colunas: Canal, Fluxo, Status, Habilitado, Ações. Toggle para habilitar/desabilitar. Modal para criar canal Site. Link de chat gerado automaticamente."
+
+  - task: "Página Chat Público - Interface para clientes"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/PublicChat.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Página pública de chat para clientes acessarem via link gerado pelo canal Site. Formulário inicial para coletar dados do cliente (nome, email, telefone). Interface de chat simples."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
@@ -341,7 +437,13 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus: []
+  current_focus:
+    - "GET /api/channels - Listar canais (admin only)"
+    - "POST /api/channels - Criar canal (admin only)"
+    - "PUT /api/channels/{id} - Atualizar canal (admin only)"
+    - "PATCH /api/channels/{id}/toggle-active - Toggle habilitado"
+    - "DELETE /api/channels/{id} - Excluir canal (admin only)"
+    - "GET /api/channels/{id} - Obter canal por ID (público)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -355,3 +457,5 @@ agent_communication:
     message: "Implementei página de gerenciamento de administradores (AdminsPage.js) como clone de AgentsPage. Backend com CRUD completo em /api/admins com proteção contra auto-exclusão e auto-desativação. Frontend com mesma interface que agentes mas com restrições visuais para o próprio usuário. Testar endpoints de admins. Credencial: admin / admin123"
   - agent: "testing"
     message: "✅ TESTE COMPLETO DOS ENDPOINTS DE ADMINISTRADORES REALIZADO COM SUCESSO! Todos os 16 testes passaram (100% success rate). Testados: (1) Login com admin/admin123 ✅, (2) GET /api/admins ✅, (3) POST /api/admins ✅, (4) PUT /api/admins/{id} ✅, (5) Proteção auto-desativação ✅, (6) Proteção auto-exclusão ✅, (7) DELETE /api/admins/{id} ✅, (8) Bulk delete ✅. Todas as proteções de segurança funcionando corretamente. Sistema pronto para uso."
+  - agent: "main"
+    message: "Implementei CRUD completo de canais. Backend: GET/POST/PUT/PATCH/DELETE em /api/channels. Frontend: ChannelsPage.js com design pixel-perfect baseado na imagem de referência. Página pública de chat em /chat/:channelId. O canal tipo 'site' gera link de atendimento automaticamente. Testar endpoints de canais. Credencial: admin / admin123"

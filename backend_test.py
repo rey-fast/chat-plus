@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class AdminCRUDAPITester:
-    def __init__(self, base_url="https://corphelp.preview.emergentagent.com"):
+    def __init__(self, base_url="https://support-hub-103.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.current_user_id = None

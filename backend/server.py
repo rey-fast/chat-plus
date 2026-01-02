@@ -11,13 +11,15 @@ from database import (
     connect_to_mongodb, close_mongodb_connection, get_user_by_login, 
     verify_password, get_agents, create_agent, update_agent, 
     delete_agent, delete_agents_bulk,
-    get_admins, create_admin, update_admin, delete_admin, delete_admins_bulk
+    get_admins, create_admin, update_admin, delete_admin, delete_admins_bulk,
+    get_channels, get_channel_by_id, create_channel, update_channel, delete_channel, delete_channels_bulk
 )
 from auth import create_access_token, verify_token
 from models import (
     LoginRequest, LoginResponse, UserResponse, 
     AgentCreate, AgentUpdate, AgentResponse, AgentListResponse,
-    AdminCreate, AdminUpdate, AdminResponse, AdminListResponse
+    AdminCreate, AdminUpdate, AdminResponse, AdminListResponse,
+    ChannelCreate, ChannelUpdate, ChannelResponse, ChannelListResponse
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -251,6 +253,121 @@ async def delete_admins_in_bulk(
     except Exception as e:
         logger.error(f"Error deleting admins in bulk: {e}")
         raise HTTPException(status_code=500, detail="Erro ao excluir administradores")
+
+
+# Channel endpoints
+@api_router.get("/channels", response_model=ChannelListResponse)
+async def list_channels(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    _: dict = Depends(require_admin)
+):
+    """List all channels (admin only)"""
+    try:
+        result = await get_channels(page=page, per_page=per_page, search=search)
+        return result
+    except Exception as e:
+        logger.error(f"Error listing channels: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar canais")
+
+@api_router.get("/channels/{channel_id}", response_model=ChannelResponse)
+async def get_single_channel(channel_id: str):
+    """Get a single channel by ID (public for chat access)"""
+    try:
+        result = await get_channel_by_id(channel_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Canal não encontrado")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting channel: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao obter canal")
+
+@api_router.post("/channels", response_model=ChannelResponse)
+async def create_new_channel(
+    channel: ChannelCreate,
+    _: dict = Depends(require_admin)
+):
+    """Create a new channel (admin only)"""
+    try:
+        # Get base URL from environment or use default
+        frontend_url = os.environ.get('FRONTEND_URL', '')
+        result = await create_channel(channel.model_dump(), frontend_url)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating channel: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao criar canal")
+
+@api_router.put("/channels/{channel_id}", response_model=ChannelResponse)
+async def update_existing_channel(
+    channel_id: str,
+    channel: ChannelUpdate,
+    _: dict = Depends(require_admin)
+):
+    """Update a channel (admin only)"""
+    try:
+        result = await update_channel(channel_id, channel.model_dump(exclude_unset=True))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating channel: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar canal")
+
+@api_router.patch("/channels/{channel_id}/toggle-active", response_model=ChannelResponse)
+async def toggle_channel_active(
+    channel_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Toggle channel active status (admin only)"""
+    try:
+        # Get current channel
+        channel = await get_channel_by_id(channel_id)
+        if not channel:
+            raise HTTPException(status_code=404, detail="Canal não encontrado")
+        
+        # Toggle is_active
+        result = await update_channel(channel_id, {"is_active": not channel['is_active']})
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling channel: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao alternar status do canal")
+
+@api_router.delete("/channels/{channel_id}")
+async def delete_existing_channel(
+    channel_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Delete a channel (admin only)"""
+    try:
+        success = await delete_channel(channel_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Canal não encontrado")
+        return {"message": "Canal excluído com sucesso"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting channel: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir canal")
+
+@api_router.post("/channels/bulk-delete")
+async def delete_channels_in_bulk(
+    channel_ids: List[str],
+    _: dict = Depends(require_admin)
+):
+    """Delete multiple channels (admin only)"""
+    try:
+        deleted_count = await delete_channels_bulk(channel_ids)
+        return {"message": f"{deleted_count} canal(is) excluído(s) com sucesso", "deleted_count": deleted_count}
+    except Exception as e:
+        logger.error(f"Error deleting channels in bulk: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir canais")
 
 # Include the router in the main app
 app.include_router(api_router)
