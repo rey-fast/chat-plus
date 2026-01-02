@@ -1,58 +1,152 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MessageCircle, LogOut, User } from 'lucide-react';
+import AgentLayout from '../components/agent/AgentLayout';
+
+// Dados mockados para demonstrar o layout visual
+const mockConversations = [
+  {
+    id: '1',
+    clientName: 'Cliente 1',
+    avatar: null,
+    lastMessage: 'Bom dia, eu me chamo Agente e darei início ao seu...',
+    department: 'Financeiro',
+    status: 'active',
+    time: '08:45',
+    waitTime: null,
+    isOnline: true,
+    date: '31/12/2025',
+    startTime: '08:44',
+    channel: 'WhatsApp',
+    protocol: '2025123100007',
+    messages: [
+      {
+        sender: 'client',
+        senderName: 'Cliente 1',
+        text: 'Oi',
+        time: '08:44',
+        avatar: null
+      },
+      {
+        sender: 'system',
+        senderName: 'Automático',
+        text: 'Seja bem-vindo(a) à Central de Atendimento ao Cliente.\n\nVocê já é nosso cliente?',
+        time: '08:44',
+        options: ['1 - Sim', '2 - Não'],
+        image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&h=300&fit=crop'
+      },
+      {
+        sender: 'client',
+        senderName: 'Cliente 1',
+        text: '1',
+        time: '08:44',
+        avatar: null
+      },
+      {
+        sender: 'system',
+        senderName: 'Automático',
+        text: 'Que bom ter você conosco. 😍\nMe diz agora qual o motivo do seu contato:',
+        time: '08:44',
+        options: [
+          '1 - Suporte',
+          '2 - Solicitar Boleto Para Pagamento',
+          '3 - Envio de Comprovante',
+          '4 - Solicitar Desbloqueio Temporário'
+        ],
+        link: 'Ler mais...'
+      }
+    ]
+  },
+  {
+    id: '2',
+    clientName: 'Cliente 2',
+    avatar: null,
+    lastMessage: 'Entendi, você precisa de suporte. Aguarde um...',
+    department: 'Suporte',
+    status: 'waiting',
+    time: 'Agora',
+    waitTime: '00:00:30',
+    isOnline: true,
+    date: '31/12/2025',
+    startTime: '08:50',
+    channel: 'Chat',
+    protocol: '2025123100008',
+    messages: [
+      {
+        sender: 'client',
+        senderName: 'Cliente 2',
+        text: 'Olá, preciso de ajuda',
+        time: '08:50',
+        avatar: null
+      },
+      {
+        sender: 'system',
+        senderName: 'Automático',
+        text: 'Olá! Bem-vindo ao nosso atendimento. Como posso ajudá-lo hoje?',
+        time: '08:50'
+      },
+      {
+        sender: 'client',
+        senderName: 'Cliente 2',
+        text: 'Tenho uma dúvida sobre meu plano',
+        time: '08:51',
+        avatar: null
+      },
+      {
+        sender: 'system',
+        senderName: 'Automático',
+        text: 'Entendi, você precisa de suporte. Aguarde um momento que vou transferir para um de nossos atendentes.',
+        time: '08:51'
+      }
+    ]
+  }
+];
 
 const AgentDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [conversations, setConversations] = useState(mockConversations);
+  const [selectedConversation, setSelectedConversation] = useState(mockConversations[0]);
+  const [activeSection, setActiveSection] = useState('atendimento');
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  useEffect(() => {
+    // Redireciona se não estiver autenticado ou não for agente
+    if (!loading && !user) {
+      navigate('/login');
+    } else if (!loading && user && user.role !== 'agent') {
+      // Se for admin, redireciona para o painel admin
+      if (user.role === 'admin') {
+        navigate('/admin');
+      }
+    }
+  }, [user, loading, navigate]);
+
+  const handleSelectConversation = (conversation) => {
+    setSelectedConversation(conversation);
   };
 
-  return (
-    <div className="min-h-screen bg-[#F4F7FC]" data-testid="agent-dashboard">
-      {/* Topbar */}
-      <header className="h-14 bg-[#1A3F56] flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#20C997] rounded-lg flex items-center justify-center">
-            <MessageCircle size={18} className="text-white" />
-          </div>
-          <span className="text-white font-semibold text-lg">ChatPlus</span>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 text-white">
-            <span className="text-sm">{user?.username || 'Agente'}</span>
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <User size={18} className="text-white" />
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1 text-white/80 hover:text-white text-sm"
-            data-testid="logout-button"
-          >
-            <LogOut size={16} />
-            <span>Sair</span>
-          </button>
-        </div>
-      </header>
+  const handleChangeSection = (section) => {
+    setActiveSection(section);
+  };
 
-      {/* Main Content */}
-      <main className="flex items-center justify-center min-h-[calc(100vh-56px)]">
-        <div className="bg-white rounded-lg shadow-lg p-12 text-center max-w-md">
-          <div className="w-20 h-20 bg-[#1A3F56] rounded-full flex items-center justify-center mx-auto mb-6">
-            <User size={40} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-[#1A3F56] mb-4" data-testid="agent-title">
-            Painel do Agente
-          </h1>
-          <p className="text-gray-500">(em construção)</p>
-        </div>
-      </main>
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div data-testid="agent-dashboard">
+      <AgentLayout
+        conversations={conversations}
+        selectedConversation={selectedConversation}
+        onSelectConversation={handleSelectConversation}
+        activeSection={activeSection}
+        onChangeSection={handleChangeSection}
+        user={user}
+      />
     </div>
   );
 };
