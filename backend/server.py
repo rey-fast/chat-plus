@@ -10,12 +10,14 @@ from typing import List, Optional
 from database import (
     connect_to_mongodb, close_mongodb_connection, get_user_by_login, 
     verify_password, get_agents, create_agent, update_agent, 
-    delete_agent, delete_agents_bulk
+    delete_agent, delete_agents_bulk,
+    get_admins, create_admin, update_admin, delete_admin, delete_admins_bulk
 )
 from auth import create_access_token, verify_token
 from models import (
     LoginRequest, LoginResponse, UserResponse, 
-    AgentCreate, AgentUpdate, AgentResponse, AgentListResponse
+    AgentCreate, AgentUpdate, AgentResponse, AgentListResponse,
+    AdminCreate, AdminUpdate, AdminResponse, AdminListResponse
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -166,6 +168,89 @@ async def delete_agents_in_bulk(
     except Exception as e:
         logger.error(f"Error deleting agents in bulk: {e}")
         raise HTTPException(status_code=500, detail="Erro ao excluir agentes")
+
+
+# Admin endpoints
+@api_router.get("/admins", response_model=AdminListResponse)
+async def list_admins(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    _: dict = Depends(require_admin)
+):
+    """List all admins (admin only)"""
+    try:
+        result = await get_admins(page=page, per_page=per_page, search=search)
+        return result
+    except Exception as e:
+        logger.error(f"Error listing admins: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar administradores")
+
+@api_router.post("/admins", response_model=AdminResponse)
+async def create_new_admin(
+    admin: AdminCreate,
+    _: dict = Depends(require_admin)
+):
+    """Create a new admin (admin only)"""
+    try:
+        result = await create_admin(admin.model_dump())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating admin: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao criar administrador")
+
+@api_router.put("/admins/{admin_id}", response_model=AdminResponse)
+async def update_existing_admin(
+    admin_id: str,
+    admin: AdminUpdate,
+    token_data: dict = Depends(require_admin)
+):
+    """Update an admin (admin only)"""
+    try:
+        current_user_id = token_data.get("sub")
+        result = await update_admin(admin_id, admin.model_dump(exclude_unset=True), current_user_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating admin: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar administrador")
+
+@api_router.delete("/admins/{admin_id}")
+async def delete_existing_admin(
+    admin_id: str,
+    token_data: dict = Depends(require_admin)
+):
+    """Delete an admin (admin only)"""
+    try:
+        current_user_id = token_data.get("sub")
+        success = await delete_admin(admin_id, current_user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Administrador não encontrado")
+        return {"message": "Administrador excluído com sucesso"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting admin: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir administrador")
+
+@api_router.post("/admins/bulk-delete")
+async def delete_admins_in_bulk(
+    admin_ids: List[str],
+    token_data: dict = Depends(require_admin)
+):
+    """Delete multiple admins (admin only)"""
+    try:
+        current_user_id = token_data.get("sub")
+        deleted_count = await delete_admins_bulk(admin_ids, current_user_id)
+        return {"message": f"{deleted_count} administrador(es) excluído(s) com sucesso", "deleted_count": deleted_count}
+    except Exception as e:
+        logger.error(f"Error deleting admins in bulk: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir administradores")
 
 # Include the router in the main app
 app.include_router(api_router)

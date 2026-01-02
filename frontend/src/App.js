@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import AgentDashboard from './pages/AgentDashboard';
 import DashboardPage from './pages/admin/DashboardPage';
 import AgentsPage from './pages/admin/AgentsPage';
+import AdminsPage from './pages/admin/AdminsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import './App.css';
 
@@ -26,7 +27,7 @@ function App() {
           <Route path="/admin/fluxo" element={<PlaceholderPage />} />
           <Route path="/admin/envio-lote" element={<PlaceholderPage />} />
           <Route path="/admin/contatos" element={<PlaceholderPage />} />
-          <Route path="/admin/configuracoes/administradores" element={<PlaceholderPage />} />
+          <Route path="/admin/configuracoes/administradores" element={<AdminsPage />} />
           <Route path="/admin/configuracoes/agentes" element={<AgentsPage />} />
         </Routes>
       </BrowserRouter>

@@ -46,3 +46,32 @@ class AgentListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+# Admin Models
+class AdminCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    is_active: bool = True
+
+class AdminUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=6)
+    is_active: Optional[bool] = None
+
+class AdminResponse(BaseModel):
+    id: str
+    name: str
+    username: str
+    email: str
+    is_active: bool
+    created_at: datetime
+
+class AdminListResponse(BaseModel):
+    admins: List[AdminResponse]
+    total: int
+    page: int
+    per_page: int

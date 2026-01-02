@@ -281,3 +281,193 @@ async def delete_agents_bulk(agent_ids: List[str]) -> int:
     except Exception as e:
         logger.error(f"Error deleting agents in bulk: {e}")
         raise
+
+
+# Admin CRUD operations
+async def get_admins(page: int = 1, per_page: int = 10, search: str = None) -> dict:
+    """Get all admins with pagination"""
+    try:
+        query = {"role": "admin"}
+        
+        if search:
+            query["$or"] = [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"username": {"$regex": search, "$options": "i"}},
+                {"email": {"$regex": search, "$options": "i"}}
+            ]
+        
+        total = await db.users.count_documents(query)
+        skip = (page - 1) * per_page
+        
+        cursor = db.users.find(query).skip(skip).limit(per_page).sort("created_at", -1)
+        admins = []
+        
+        async for user in cursor:
+            admins.append({
+                'id': user.get('id'),
+                'name': user.get('name'),
+                'username': user.get('username'),
+                'email': user.get('email'),
+                'is_active': user.get('is_active', True),
+                'created_at': user.get('created_at')
+            })
+        
+        return {
+            'admins': admins,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting admins: {e}")
+        raise
+
+async def create_admin(admin_data: dict) -> dict:
+    """Create a new admin"""
+    try:
+        # Check if username or email already exists
+        existing = await db.users.find_one({
+            "$or": [
+                {"username": admin_data['username']},
+                {"email": admin_data['email']}
+            ]
+        })
+        
+        if existing:
+            if existing.get('username') == admin_data['username']:
+                raise ValueError("Nome de usuário já existe")
+            if existing.get('email') == admin_data['email']:
+                raise ValueError("E-mail já existe")
+        
+        new_admin = {
+            "id": str(uuid.uuid4()),
+            "name": admin_data['name'],
+            "username": admin_data['username'],
+            "email": admin_data['email'],
+            "password_hash": pwd_context.hash(admin_data['password']),
+            "role": "admin",
+            "is_active": admin_data.get('is_active', True),
+            "created_at": datetime.now(timezone.utc)
+        }
+        
+        await db.users.insert_one(new_admin)
+        
+        return {
+            'id': new_admin['id'],
+            'name': new_admin['name'],
+            'username': new_admin['username'],
+            'email': new_admin['email'],
+            'is_active': new_admin['is_active'],
+            'created_at': new_admin['created_at']
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error creating admin: {e}")
+        raise
+
+async def update_admin(admin_id: str, admin_data: dict, current_user_id: str = None) -> dict:
+    """Update an admin"""
+    try:
+        # Check if admin exists
+        admin = await db.users.find_one({"id": admin_id, "role": "admin"})
+        if not admin:
+            raise ValueError("Administrador não encontrado")
+        
+        # Prevent self-deactivation
+        if current_user_id and admin_id == current_user_id:
+            if 'is_active' in admin_data and admin_data['is_active'] is False:
+                raise ValueError("Você não pode desativar seu próprio usuário")
+        
+        update_data = {}
+        
+        if admin_data.get('name'):
+            update_data['name'] = admin_data['name']
+        
+        if admin_data.get('username'):
+            # Check if new username is taken
+            existing = await db.users.find_one({
+                "username": admin_data['username'],
+                "id": {"$ne": admin_id}
+            })
+            if existing:
+                raise ValueError("Nome de usuário já existe")
+            update_data['username'] = admin_data['username']
+        
+        if admin_data.get('email'):
+            # Check if new email is taken
+            existing = await db.users.find_one({
+                "email": admin_data['email'],
+                "id": {"$ne": admin_id}
+            })
+            if existing:
+                raise ValueError("E-mail já existe")
+            update_data['email'] = admin_data['email']
+        
+        if admin_data.get('password'):
+            update_data['password_hash'] = pwd_context.hash(admin_data['password'])
+        
+        if 'is_active' in admin_data and admin_data['is_active'] is not None:
+            update_data['is_active'] = admin_data['is_active']
+        
+        if update_data:
+            await db.users.update_one(
+                {"id": admin_id},
+                {"$set": update_data}
+            )
+        
+        # Get updated admin
+        updated = await db.users.find_one({"id": admin_id})
+        
+        return {
+            'id': updated.get('id'),
+            'name': updated.get('name'),
+            'username': updated.get('username'),
+            'email': updated.get('email'),
+            'is_active': updated.get('is_active', True),
+            'created_at': updated.get('created_at')
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error updating admin: {e}")
+        raise
+
+async def delete_admin(admin_id: str, current_user_id: str = None) -> bool:
+    """Delete an admin"""
+    try:
+        # Prevent self-deletion
+        if current_user_id and admin_id == current_user_id:
+            raise ValueError("Você não pode excluir seu próprio usuário")
+        
+        result = await db.users.delete_one({"id": admin_id, "role": "admin"})
+        return result.deleted_count > 0
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting admin: {e}")
+        raise
+
+async def delete_admins_bulk(admin_ids: List[str], current_user_id: str = None) -> int:
+    """Delete multiple admins"""
+    try:
+        # Remove current user from the list if present
+        if current_user_id and current_user_id in admin_ids:
+            admin_ids = [aid for aid in admin_ids if aid != current_user_id]
+        
+        if not admin_ids:
+            return 0
+        
+        result = await db.users.delete_many({
+            "id": {"$in": admin_ids},
+            "role": "admin"
+        })
+        return result.deleted_count
+        
+    except Exception as e:
+        logger.error(f"Error deleting admins in bulk: {e}")
+        raise

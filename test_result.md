@@ -107,27 +107,33 @@ user_problem_statement: "Sistema de atendimento corporativo via chat com painel 
 backend:
   - task: "POST /api/auth/login - Login com email ou usuário"
     implemented: true
-    working: NA
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: NA
         agent: "main"
         comment: "Endpoint de login existente, agora verifica se usuário está ativo"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Login funcionando corretamente com username 'admin' e email 'admin@exemplo.com.br'. Token JWT gerado com sucesso. Validação de credenciais inválidas funcionando (401). Validação de campos obrigatórios funcionando (422)."
 
   - task: "GET /api/auth/me - Obter usuário atual"
     implemented: true
-    working: NA
+    working: true
     file: "backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: NA
         agent: "main"
         comment: "Endpoint existente para validar token"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Retorna dados do usuário com token válido. Rejeita requisições sem token (401) e com token inválido (401)."
 
   - task: "GET /api/agents - Listar agentes (admin only)"
     implemented: true
@@ -189,6 +195,81 @@ backend:
         agent: "main"
         comment: "Novo endpoint para exclusão em lote"
 
+  - task: "GET /api/admins - Listar administradores (admin only)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para listar administradores com paginação e busca"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Lista administradores com paginação. Retorna total=1, encontrou admin padrão. Autenticação JWT funcionando."
+
+  - task: "POST /api/admins - Criar administrador (admin only)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para criar administrador com validação de username/email únicos"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Criou administrador com dados válidos. Validação de campos obrigatórios funcionando. UUID gerado automaticamente."
+
+  - task: "PUT /api/admins/{id} - Atualizar administrador (admin only)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para atualizar administrador com proteção contra auto-desativação"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Atualização de dados funcionando. PROTEÇÃO CONTRA AUTO-DESATIVAÇÃO FUNCIONANDO: tentativa de desativar próprio usuário retorna erro 400 'Você não pode desativar seu próprio usuário'."
+
+  - task: "DELETE /api/admins/{id} - Excluir administrador (admin only)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para excluir administrador com proteção contra auto-exclusão"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Exclusão de administrador funcionando. PROTEÇÃO CONTRA AUTO-EXCLUSÃO FUNCIONANDO: tentativa de excluir próprio usuário retorna erro 400 'Você não pode excluir seu próprio usuário'."
+
+  - task: "POST /api/admins/bulk-delete - Excluir múltiplos administradores"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para exclusão em lote com proteção contra auto-exclusão"
+      - working: true
+        agent: "testing"
+        comment: "✅ PASSED - Endpoint funcionando corretamente. Exclusão em lote funcionando. Criou 2 admins de teste e excluiu ambos com sucesso (deleted_count=2)."
+
 frontend:
   - task: "Login Page - Redirecionamento por role"
     implemented: true
@@ -241,19 +322,26 @@ frontend:
         agent: "main"
         comment: "Painel do agente completamente reimplementado como clone fiel da imagem de referência. Inclui: sidebar de ícones, lista de atendimentos (em atendimento/espera), área de chat com mensagens, painel de informações do cliente. Dados mockados para demonstração visual."
 
+  - task: "Página Administradores - Tabela CRUD"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/admin/AdminsPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Página de administradores clone de AgentsPage com tabela, busca, paginação, modais criar/editar/excluir e proteção contra auto-exclusão/desativação"
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "POST /api/auth/login - Login com email ou usuário"
-    - "GET /api/agents - Listar agentes (admin only)"
-    - "POST /api/agents - Criar agente (admin only)"
-    - "PUT /api/agents/{id} - Atualizar agente (admin only)"
-    - "DELETE /api/agents/{id} - Excluir agente (admin only)"
+  current_focus: []
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -263,3 +351,7 @@ agent_communication:
     message: "Implementei backend completo com CRUD de agentes e frontend com painel admin clone da imagem. Credenciais de teste: admin / admin123. Testar todos os endpoints de agentes."
   - agent: "main"
     message: "Painel do agente completamente reimplementado. Interface clone fiel da imagem de referência com: (1) Sidebar de ícones de canais, (2) Lista de atendimentos em andamento e em espera, (3) Área de chat com mensagens do cliente/sistema, (4) Painel de informações do cliente com protocolo, galeria, anotações e mensagens predefinidas. Credenciais agente: agente1 / agente123. UUID automático já implementado no backend."
+  - agent: "main"
+    message: "Implementei página de gerenciamento de administradores (AdminsPage.js) como clone de AgentsPage. Backend com CRUD completo em /api/admins com proteção contra auto-exclusão e auto-desativação. Frontend com mesma interface que agentes mas com restrições visuais para o próprio usuário. Testar endpoints de admins. Credencial: admin / admin123"
+  - agent: "testing"
+    message: "✅ TESTE COMPLETO DOS ENDPOINTS DE ADMINISTRADORES REALIZADO COM SUCESSO! Todos os 16 testes passaram (100% success rate). Testados: (1) Login com admin/admin123 ✅, (2) GET /api/admins ✅, (3) POST /api/admins ✅, (4) PUT /api/admins/{id} ✅, (5) Proteção auto-desativação ✅, (6) Proteção auto-exclusão ✅, (7) DELETE /api/admins/{id} ✅, (8) Bulk delete ✅. Todas as proteções de segurança funcionando corretamente. Sistema pronto para uso."
