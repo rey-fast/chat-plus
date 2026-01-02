@@ -14,11 +14,7 @@ import {
   Globe,
   MessageCircle,
   ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Lightbulb,
-  Settings
+  ChevronRight
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -63,7 +59,7 @@ const ChannelsPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedChannels, setSelectedChannels] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, perPage: 2, total: 0 });
+  const [pagination, setPagination] = useState({ page: 1, perPage: 10, total: 0 });
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -255,105 +251,85 @@ const ChannelsPage = () => {
   return (
     <AdminLayout>
       <div className="min-h-[calc(100vh-112px)]" data-testid="channels-page">
-        {/* Page Header */}
-        <div className="bg-[#3A5D77] rounded-t-lg px-4 py-3 flex items-center justify-between mb-0">
-          <div className="flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            <h1 className="text-white text-lg font-medium">Canal</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="p-2 text-white/70 hover:text-white transition-colors">
-              <Lightbulb size={20} />
-            </button>
-          </div>
+        {/* Breadcrumb */}
+        <div className="mb-4">
+          <span className="text-gray-500 text-sm">Configuração</span>
+          <span className="text-gray-400 mx-2">{'>'}</span>
+          <span className="text-[#1A3F56] text-sm font-medium">Canal</span>
         </div>
 
-        {/* Search and Actions Bar */}
-        <div className="bg-white border-x border-gray-200 px-4 py-3 flex items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        {/* Controls Row */}
+        <div className="flex items-center justify-between mb-4">
+          {/* Search */}
+          <div className="relative w-64">
             <input
               type="text"
-              placeholder="Pesquisar"
+              placeholder="Pesquisa"
               value={search}
               onChange={handleSearch}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#3A5D77]"
+              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#1A3F56]"
               data-testid="search-input"
             />
+            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Selection actions */}
+          <div className="flex items-center gap-4">
+            <button
+              onClick={toggleSelectAll}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+            >
+              {selectedChannels.length === channels.length && channels.length > 0 ? (
+                <Check size={16} className="text-[#20C997]" />
+              ) : (
+                <div className="w-4 h-4 border border-gray-400 rounded" />
+              )}
+              Selecionar todos
+            </button>
+            
+            <button
+              onClick={() => setSelectedChannels([])}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+            >
+              <div className="w-4 h-4 border border-gray-400 rounded" />
+              Desmarcar todos
+            </button>
+            
             <button
               onClick={handleBulkDelete}
               disabled={selectedChannels.length === 0}
-              className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              title="Excluir selecionados"
+              className="flex items-center gap-2 text-sm text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Trash2 size={20} />
-            </button>
-            <button
-              onClick={() => {
-                resetForm();
-                setShowCreateModal(true);
-              }}
-              className="p-2 text-gray-400 hover:text-[#3A5D77] transition-colors"
-              title="Novo canal"
-              data-testid="new-channel-btn"
-            >
-              <Plus size={20} />
+              <Trash2 size={16} />
+              Excluir selecionados
             </button>
           </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white border border-gray-200 rounded-b-lg overflow-hidden shadow-sm">
+        <div className="bg-white rounded shadow overflow-hidden">
           <table className="w-full" data-testid="channels-table">
             <thead>
               <tr className="bg-[#3A5D77] text-white text-sm">
-                <th className="text-left py-3 px-4 font-medium w-10">
-                  <button
-                    onClick={toggleSelectAll}
-                    className="w-5 h-5 border-2 border-white/60 rounded flex items-center justify-center hover:border-white transition-colors"
-                  >
-                    {selectedChannels.length === channels.length && channels.length > 0 && (
-                      <Check size={14} className="text-white" />
-                    )}
-                  </button>
-                </th>
                 <th className="text-left py-3 px-4 font-medium">Canal</th>
                 <th className="text-left py-3 px-4 font-medium">Fluxo</th>
                 <th className="text-center py-3 px-4 font-medium">Status</th>
                 <th className="text-center py-3 px-4 font-medium">Habilitado</th>
-                <th className="text-center py-3 px-4 font-medium w-16">Ações</th>
+                <th className="text-center py-3 px-4 font-medium w-20">Seleção</th>
+                <th className="text-center py-3 px-4 font-medium w-20">Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
                   <td colSpan="6" className="text-center py-8 text-gray-500">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#3A5D77]"></div>
-                      Carregando...
-                    </div>
+                    Carregando...
                   </td>
                 </tr>
               ) : channels.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="text-center py-12 text-gray-500">
-                    <div className="flex flex-col items-center gap-3">
-                      <Globe size={48} className="text-gray-300" />
-                      <p>Nenhum canal cadastrado</p>
-                      <button
-                        onClick={() => {
-                          resetForm();
-                          setShowCreateModal(true);
-                        }}
-                        className="text-[#3A5D77] hover:underline text-sm"
-                      >
-                        Criar primeiro canal
-                      </button>
-                    </div>
+                  <td colSpan="6" className="text-center py-8 text-gray-500">
+                    Nenhum canal encontrado
                   </td>
                 </tr>
               ) : (
@@ -367,20 +343,6 @@ const ChannelsPage = () => {
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                       data-testid={`channel-row-${channel.id}`}
                     >
-                      <td className="py-3 px-4">
-                        <button
-                          onClick={() => toggleSelectChannel(channel.id)}
-                          className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors ${
-                            selectedChannels.includes(channel.id)
-                              ? 'bg-[#3A5D77] border-[#3A5D77]'
-                              : 'border-gray-300 hover:border-[#3A5D77]'
-                          }`}
-                        >
-                          {selectedChannels.includes(channel.id) && (
-                            <Check size={14} className="text-white" />
-                          )}
-                        </button>
-                      </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div 
@@ -418,12 +380,12 @@ const ChannelsPage = () => {
                       <td className="py-3 px-4 text-center">
                         <span
                           className={`inline-block px-3 py-1 rounded text-xs font-medium ${
-                            channel.status === 'connected'
-                              ? 'bg-green-500 text-white'
-                              : 'bg-gray-200 text-gray-600'
+                            channel.is_active
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
                           }`}
                         >
-                          {channel.status === 'connected' ? 'Conectado' : 'Desconectado'}
+                          {channel.is_active ? 'Conectado' : 'Desconectado'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
@@ -440,13 +402,25 @@ const ChannelsPage = () => {
                           />
                         </button>
                       </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => toggleSelectChannel(channel.id)}
+                          className="text-gray-400 hover:text-[#20C997]"
+                        >
+                          {selectedChannels.includes(channel.id) ? (
+                            <Check size={18} className="text-[#20C997]" />
+                          ) : (
+                            <div className="w-[18px] h-[18px] border border-gray-400 rounded" />
+                          )}
+                        </button>
+                      </td>
                       <td className="py-3 px-4 text-center relative">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setActionMenuOpen(actionMenuOpen === channel.id ? null : channel.id);
                           }}
-                          className="text-gray-400 hover:text-gray-600 p-1"
+                          className="text-gray-400 hover:text-gray-600"
                           data-testid={`action-menu-${channel.id}`}
                         >
                           <MoreVertical size={18} />
@@ -454,7 +428,7 @@ const ChannelsPage = () => {
                         
                         {actionMenuOpen === channel.id && (
                           <div 
-                            className="absolute right-4 top-10 bg-white border shadow-lg rounded py-1 z-20 min-w-[140px]"
+                            className="absolute right-4 top-10 bg-white border shadow-lg rounded py-1 z-10 min-w-[120px]"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
@@ -496,64 +470,46 @@ const ChannelsPage = () => {
           </table>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Linhas por página</span>
-              <select
-                value={pagination.perPage}
-                onChange={(e) => setPagination(prev => ({ ...prev, perPage: parseInt(e.target.value), page: 1 }))}
-                className="border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:border-[#3A5D77]"
-              >
-                <option value={2}>2</option>
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-              </select>
-            </div>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <span className="text-sm text-gray-600">
+              {pagination.total > 0
+                ? `${startItem} - ${endItem} de ${pagination.total} itens`
+                : '0 itens'}
+            </span>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                disabled={pagination.page === 1}
+                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={18} />
+              </button>
               <span className="text-sm text-gray-600">
-                {pagination.total > 0
-                  ? `${startItem} - ${endItem} de ${pagination.total}`
-                  : '0 - 0 de 0'}
+                Página {pagination.page} de {totalPages || 1}
               </span>
-              
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: 1 }))}
-                  disabled={pagination.page === 1}
-                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronsLeft size={18} />
-                </button>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                  disabled={pagination.page === 1}
-                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <span className="px-3 py-1 text-sm border border-gray-300 rounded bg-white min-w-[32px] text-center">
-                  {pagination.page}
-                </span>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                  disabled={pagination.page >= totalPages}
-                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight size={18} />
-                </button>
-                <button
-                  onClick={() => setPagination(prev => ({ ...prev, page: totalPages }))}
-                  disabled={pagination.page >= totalPages}
-                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <ChevronsRight size={18} />
-                </button>
-              </div>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                disabled={pagination.page >= totalPages}
+                className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
           </div>
         </div>
+
+        {/* FAB - New Channel Button */}
+        <button
+          onClick={() => {
+            resetForm();
+            setShowCreateModal(true);
+          }}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-[#0066cc] hover:bg-[#0055a0] text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+          data-testid="new-channel-btn"
+        >
+          <Plus size={28} />
+        </button>
 
         {/* Create Modal */}
         {showCreateModal && (
