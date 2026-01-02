@@ -80,7 +80,7 @@ sudo nano /app/backend/.env
 Altere as seguintes variáveis:
 - `JWT_SECRET_KEY`: Altere para uma chave secreta forte em produção
 - `MONGO_URL`: URL de conexão do MongoDB (padrão: mongodb://localhost:27017)
-- `DB_NAME`: Nome do banco de dados (padrão: chatplus_db)
+- `DB_NAME`: Nome do banco de dados (padrão: chat_db)
 - `CORS_ORIGINS`: Configure os domínios permitidos (use `*` apenas em desenvolvimento)
 
 #### Frontend (`/app/frontend/.env`)
@@ -191,7 +191,7 @@ sudo systemctl status mongod
 sudo systemctl restart mongod
 
 # Acessar shell do MongoDB
-mongosh chatplus_db
+mongosh chat_db
 
 # Dentro do MongoDB shell:
 show collections              # Listar collections

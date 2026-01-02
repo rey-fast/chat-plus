@@ -65,7 +65,7 @@ sudo systemctl stop mongod
 sudo systemctl start mongod
 
 # Acessar shell
-mongosh chatplus_db
+mongosh chat_db
 
 # Dentro do MongoDB shell
 show collections              # Listar collections
@@ -256,7 +256,7 @@ bash /app/check-system.sh
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8001
 - API Docs: http://localhost:8001/docs
-- MongoDB: localhost:27017 (Database: chatplus_db)
+- MongoDB: localhost:27017 (Database: chat_db)
 - **Credenciais padrão:** admin / admin123
 
 ### Externo (substitua SEU_IP)
@@ -283,10 +283,10 @@ sudo bash /app/backup.sh /mnt/backups
 ### Restaurar Backup
 ```bash
 # 1. Extrair backup (se comprimido)
-tar -xzf chatplus_backup_TIMESTAMP.tar.gz
+tar -xzf chat_backup_TIMESTAMP.tar.gz
 
 # 2. Executar restauração
-sudo bash chatplus_backup_TIMESTAMP/restore.sh
+sudo bash chat_backup_TIMESTAMP/restore.sh
 ```
 
 ## 🔒 Segurança
@@ -372,7 +372,7 @@ sudo supervisorctl restart frontend
 ```bash
 # ⚠️ CUIDADO: Apaga todos os dados!
 sudo systemctl stop mongod
-mongosh --eval "db.dropDatabase()" chatplus_db
+mongosh --eval "db.dropDatabase()" chat_db
 sudo systemctl start mongod
 
 # Recriar estrutura e admin

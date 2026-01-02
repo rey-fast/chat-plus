@@ -80,8 +80,8 @@ fi
 # ==============================================================================
 log_info "2. Removendo configurações do Supervisor..."
 
-if [ -f "/etc/supervisor/conf.d/chatplus.conf" ]; then
-    rm -f /etc/supervisor/conf.d/chatplus.conf
+if [ -f "/etc/supervisor/conf.d/chat.conf" ]; then
+    rm -f /etc/supervisor/conf.d/chat.conf
     supervisorctl reread 2>/dev/null || true
     supervisorctl update 2>/dev/null || true
     log_success "Configurações do Supervisor removidas"
@@ -170,7 +170,7 @@ if [[ $REPLY =~ ^[Ss]$ ]]; then
     read -p "Deseja fazer backup antes de remover? (s/n): " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Ss]$ ]]; then
-        BACKUP_DIR="/root/chatplus_backup_$(date +%Y%m%d_%H%M%S)"
+        BACKUP_DIR="/root/chat_backup_$(date +%Y%m%d_%H%M%S)"
         log_info "Criando backup em $BACKUP_DIR..."
         cp -r /app "$BACKUP_DIR"
         log_success "Backup criado em $BACKUP_DIR"

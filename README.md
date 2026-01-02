@@ -147,7 +147,7 @@ sudo journalctl -u mongod -f
 ```bash
 sudo systemctl status mongod    # Status
 sudo systemctl restart mongod   # Reiniciar
-mongosh chatplus_db             # Acessar banco
+mongosh chat_db             # Acessar banco
 ```
 
 ## 📁 Estrutura do Projeto

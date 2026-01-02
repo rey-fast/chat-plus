@@ -18,7 +18,7 @@ async def connect_to_mongodb():
     global client, db
     try:
         mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-        db_name = os.environ.get('DB_NAME', 'chatplus_db')
+        db_name = os.environ.get('DB_NAME', 'chat_db')
         
         client = AsyncIOMotorClient(mongo_url)
         db = client[db_name]

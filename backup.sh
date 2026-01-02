@@ -42,7 +42,7 @@ fi
 # Diretório de destino do backup
 BACKUP_ROOT="${1:-/root/backups}"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="$BACKUP_ROOT/chatplus_backup_$TIMESTAMP"
+BACKUP_DIR="$BACKUP_ROOT/chat_backup_$TIMESTAMP"
 
 log_info "==================================================================="
 log_info "Script de Backup - Sistema de Atendimento Empresarial"
@@ -75,10 +75,10 @@ log_info "2. Fazendo backup do MongoDB..."
 if command -v mongodump &> /dev/null; then
     mkdir -p "$BACKUP_DIR/mongodb_dump"
     
-    # Dump do banco de dados chatplus_db
-    log_info "Fazendo dump do banco chatplus_db..."
-    mongodump --db chatplus_db --out "$BACKUP_DIR/mongodb_dump" 2>/dev/null || \
-    mongodump --uri="mongodb://localhost:27017/chatplus_db" --out "$BACKUP_DIR/mongodb_dump"
+    # Dump do banco de dados chat_db
+    log_info "Fazendo dump do banco chat_db..."
+    mongodump --db chat_db --out "$BACKUP_DIR/mongodb_dump" 2>/dev/null || \
+    mongodump --uri="mongodb://localhost:27017/chat_db" --out "$BACKUP_DIR/mongodb_dump"
     
     log_success "Backup do MongoDB criado"
 else
@@ -92,8 +92,8 @@ log_info "3. Fazendo backup das configurações do Supervisor..."
 
 mkdir -p "$BACKUP_DIR/supervisor"
 
-if [ -f "/etc/supervisor/conf.d/chatplus.conf" ]; then
-    cp /etc/supervisor/conf.d/chatplus.conf "$BACKUP_DIR/supervisor/"
+if [ -f "/etc/supervisor/conf.d/chat.conf" ]; then
+    cp /etc/supervisor/conf.d/chat.conf "$BACKUP_DIR/supervisor/"
     log_success "Configurações do Supervisor copiadas"
 else
     log_warning "Arquivo de configuração do Supervisor não encontrado"
@@ -240,10 +240,10 @@ fi
 if [ -d "$BACKUP_DIR/mongodb_dump" ]; then
     log_info "Restaurando MongoDB..."
     
-    # Restaurar banco chatplus_db
-    if [ -d "$BACKUP_DIR/mongodb_dump/chatplus_db" ]; then
-        mongorestore --db chatplus_db --drop "$BACKUP_DIR/mongodb_dump/chatplus_db" 2>/dev/null || \
-        mongorestore --uri="mongodb://localhost:27017" --db chatplus_db --drop "$BACKUP_DIR/mongodb_dump/chatplus_db"
+    # Restaurar banco chat_db
+    if [ -d "$BACKUP_DIR/mongodb_dump/chat_db" ]; then
+        mongorestore --db chat_db --drop "$BACKUP_DIR/mongodb_dump/chat_db" 2>/dev/null || \
+        mongorestore --uri="mongodb://localhost:27017" --db chat_db --drop "$BACKUP_DIR/mongodb_dump/chat_db"
         log_success "MongoDB restaurado"
     fi
 else
@@ -251,9 +251,9 @@ else
 fi
 
 # Restaurar configuração do Supervisor
-if [ -f "$BACKUP_DIR/supervisor/chatplus.conf" ]; then
+if [ -f "$BACKUP_DIR/supervisor/chat.conf" ]; then
     log_info "Restaurando configuração do Supervisor..."
-    cp "$BACKUP_DIR/supervisor/chatplus.conf" /etc/supervisor/conf.d/
+    cp "$BACKUP_DIR/supervisor/chat.conf" /etc/supervisor/conf.d/
     supervisorctl reread
     supervisorctl update
     log_success "Configuração do Supervisor restaurada"
@@ -286,11 +286,11 @@ log_success "Script de restauração criado"
 log_info "8. Comprimindo backup..."
 
 cd "$BACKUP_ROOT"
-tar -czf "chatplus_backup_$TIMESTAMP.tar.gz" "chatplus_backup_$TIMESTAMP"
+tar -czf "chat_backup_$TIMESTAMP.tar.gz" "chat_backup_$TIMESTAMP"
 
-if [ -f "chatplus_backup_$TIMESTAMP.tar.gz" ]; then
-    BACKUP_SIZE=$(du -h "chatplus_backup_$TIMESTAMP.tar.gz" | cut -f1)
-    log_success "Backup comprimido criado: chatplus_backup_$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
+if [ -f "chat_backup_$TIMESTAMP.tar.gz" ]; then
+    BACKUP_SIZE=$(du -h "chat_backup_$TIMESTAMP.tar.gz" | cut -f1)
+    log_success "Backup comprimido criado: chat_backup_$TIMESTAMP.tar.gz ($BACKUP_SIZE)"
     
     # Perguntar se deve remover pasta não comprimida
     read -p "Deseja remover a pasta não comprimida e manter apenas o .tar.gz? (s/n): " -n 1 -r
@@ -313,10 +313,10 @@ echo ""
 log_info "📦 Arquivos de Backup:"
 echo ""
 
-if [ -f "$BACKUP_ROOT/chatplus_backup_$TIMESTAMP.tar.gz" ]; then
-    BACKUP_SIZE=$(du -h "$BACKUP_ROOT/chatplus_backup_$TIMESTAMP.tar.gz" | cut -f1)
+if [ -f "$BACKUP_ROOT/chat_backup_$TIMESTAMP.tar.gz" ]; then
+    BACKUP_SIZE=$(du -h "$BACKUP_ROOT/chat_backup_$TIMESTAMP.tar.gz" | cut -f1)
     echo "  • Arquivo comprimido:"
-    echo "    $BACKUP_ROOT/chatplus_backup_$TIMESTAMP.tar.gz"
+    echo "    $BACKUP_ROOT/chat_backup_$TIMESTAMP.tar.gz"
     echo "    Tamanho: $BACKUP_SIZE"
 fi
 
@@ -340,12 +340,12 @@ echo ""
 
 log_info "🔄 Para Restaurar o Backup:"
 echo ""
-if [ -f "$BACKUP_ROOT/chatplus_backup_$TIMESTAMP.tar.gz" ]; then
+if [ -f "$BACKUP_ROOT/chat_backup_$TIMESTAMP.tar.gz" ]; then
     echo "  1. Extrair o backup:"
-    echo "     tar -xzf $BACKUP_ROOT/chatplus_backup_$TIMESTAMP.tar.gz -C $BACKUP_ROOT"
+    echo "     tar -xzf $BACKUP_ROOT/chat_backup_$TIMESTAMP.tar.gz -C $BACKUP_ROOT"
     echo ""
     echo "  2. Executar restauração:"
-    echo "     sudo bash $BACKUP_ROOT/chatplus_backup_$TIMESTAMP/restore.sh"
+    echo "     sudo bash $BACKUP_ROOT/chat_backup_$TIMESTAMP/restore.sh"
 elif [ -d "$BACKUP_DIR" ]; then
     echo "     sudo bash $BACKUP_DIR/restore.sh"
 fi
