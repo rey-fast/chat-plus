@@ -103,3 +103,33 @@ class ChannelListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+# Flow Models
+class FlowCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+
+class FlowUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+
+class FlowResponse(BaseModel):
+    id: str
+    name: str
+    is_in_use: bool
+    channel_id: Optional[str] = None
+    channel_name: Optional[str] = None
+    nodes: Optional[List[dict]] = None
+    edges: Optional[List[dict]] = None
+    created_at: datetime
+    updated_at: datetime
+
+class FlowListResponse(BaseModel):
+    flows: List[FlowResponse]
+    total: int
+    page: int
+    per_page: int
+
+class FlowImport(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    nodes: Optional[List[dict]] = None
+    edges: Optional[List[dict]] = None

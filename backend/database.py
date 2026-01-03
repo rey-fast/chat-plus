@@ -645,3 +645,278 @@ async def delete_channels_bulk(channel_ids: List[str]) -> int:
     except Exception as e:
         logger.error(f"Error deleting channels in bulk: {e}")
         raise
+
+
+# Flow CRUD operations
+async def get_flows(page: int = 1, per_page: int = 10, search: str = None) -> dict:
+    """Get all flows with pagination"""
+    try:
+        query = {}
+        
+        if search:
+            query["name"] = {"$regex": search, "$options": "i"}
+        
+        total = await db.flows.count_documents(query)
+        skip = (page - 1) * per_page
+        
+        cursor = db.flows.find(query).skip(skip).limit(per_page).sort("created_at", -1)
+        flows = []
+        
+        async for flow in cursor:
+            # Check if flow is in use by any channel
+            channel = await db.channels.find_one({"flow_id": flow.get('id')})
+            is_in_use = channel is not None
+            
+            flows.append({
+                'id': flow.get('id'),
+                'name': flow.get('name'),
+                'is_in_use': is_in_use,
+                'channel_id': channel.get('id') if channel else None,
+                'channel_name': channel.get('name') if channel else None,
+                'nodes': flow.get('nodes', []),
+                'edges': flow.get('edges', []),
+                'created_at': flow.get('created_at'),
+                'updated_at': flow.get('updated_at', flow.get('created_at'))
+            })
+        
+        return {
+            'flows': flows,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting flows: {e}")
+        raise
+
+async def get_flow_by_id(flow_id: str) -> dict:
+    """Get a single flow by ID"""
+    try:
+        flow = await db.flows.find_one({"id": flow_id})
+        if flow:
+            # Check if flow is in use by any channel
+            channel = await db.channels.find_one({"flow_id": flow_id})
+            is_in_use = channel is not None
+            
+            return {
+                'id': flow.get('id'),
+                'name': flow.get('name'),
+                'is_in_use': is_in_use,
+                'channel_id': channel.get('id') if channel else None,
+                'channel_name': channel.get('name') if channel else None,
+                'nodes': flow.get('nodes', []),
+                'edges': flow.get('edges', []),
+                'created_at': flow.get('created_at'),
+                'updated_at': flow.get('updated_at', flow.get('created_at'))
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Error getting flow: {e}")
+        raise
+
+async def create_flow(flow_data: dict) -> dict:
+    """Create a new flow"""
+    try:
+        now = datetime.now(timezone.utc)
+        
+        new_flow = {
+            "id": str(uuid.uuid4()),
+            "name": flow_data['name'],
+            "nodes": flow_data.get('nodes', []),
+            "edges": flow_data.get('edges', []),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.flows.insert_one(new_flow)
+        
+        return {
+            'id': new_flow['id'],
+            'name': new_flow['name'],
+            'is_in_use': False,
+            'channel_id': None,
+            'channel_name': None,
+            'nodes': new_flow['nodes'],
+            'edges': new_flow['edges'],
+            'created_at': new_flow['created_at'],
+            'updated_at': new_flow['updated_at']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating flow: {e}")
+        raise
+
+async def update_flow(flow_id: str, flow_data: dict) -> dict:
+    """Update a flow"""
+    try:
+        # Check if flow exists
+        flow = await db.flows.find_one({"id": flow_id})
+        if not flow:
+            raise ValueError("Fluxo não encontrado")
+        
+        update_data = {
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        if flow_data.get('name'):
+            update_data['name'] = flow_data['name']
+        
+        if 'nodes' in flow_data:
+            update_data['nodes'] = flow_data['nodes']
+        
+        if 'edges' in flow_data:
+            update_data['edges'] = flow_data['edges']
+        
+        await db.flows.update_one(
+            {"id": flow_id},
+            {"$set": update_data}
+        )
+        
+        # Get updated flow
+        return await get_flow_by_id(flow_id)
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error updating flow: {e}")
+        raise
+
+async def delete_flow(flow_id: str) -> bool:
+    """Delete a flow"""
+    try:
+        # Check if flow is in use
+        channel = await db.channels.find_one({"flow_id": flow_id})
+        if channel:
+            raise ValueError(f"Fluxo está em uso pelo canal '{channel.get('name')}'. Remova a associação primeiro.")
+        
+        result = await db.flows.delete_one({"id": flow_id})
+        return result.deleted_count > 0
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting flow: {e}")
+        raise
+
+async def delete_flows_bulk(flow_ids: List[str]) -> dict:
+    """Delete multiple flows"""
+    try:
+        deleted_count = 0
+        skipped = []
+        
+        for flow_id in flow_ids:
+            # Check if flow is in use
+            channel = await db.channels.find_one({"flow_id": flow_id})
+            if channel:
+                skipped.append({
+                    'id': flow_id,
+                    'reason': f"Em uso pelo canal '{channel.get('name')}'"
+                })
+                continue
+            
+            result = await db.flows.delete_one({"id": flow_id})
+            if result.deleted_count > 0:
+                deleted_count += 1
+        
+        return {
+            'deleted_count': deleted_count,
+            'skipped': skipped
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting flows in bulk: {e}")
+        raise
+
+async def duplicate_flow(flow_id: str) -> dict:
+    """Duplicate a flow"""
+    try:
+        # Get original flow
+        original = await db.flows.find_one({"id": flow_id})
+        if not original:
+            raise ValueError("Fluxo não encontrado")
+        
+        now = datetime.now(timezone.utc)
+        
+        # Create copy with new name
+        new_flow = {
+            "id": str(uuid.uuid4()),
+            "name": f"{original['name']} (cópia)",
+            "nodes": original.get('nodes', []),
+            "edges": original.get('edges', []),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.flows.insert_one(new_flow)
+        
+        return {
+            'id': new_flow['id'],
+            'name': new_flow['name'],
+            'is_in_use': False,
+            'channel_id': None,
+            'channel_name': None,
+            'nodes': new_flow['nodes'],
+            'edges': new_flow['edges'],
+            'created_at': new_flow['created_at'],
+            'updated_at': new_flow['updated_at']
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error duplicating flow: {e}")
+        raise
+
+async def export_flow(flow_id: str) -> dict:
+    """Export a flow as JSON"""
+    try:
+        flow = await db.flows.find_one({"id": flow_id})
+        if not flow:
+            raise ValueError("Fluxo não encontrado")
+        
+        # Return exportable format
+        return {
+            'name': flow.get('name'),
+            'nodes': flow.get('nodes', []),
+            'edges': flow.get('edges', []),
+            'exported_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error exporting flow: {e}")
+        raise
+
+async def import_flow(flow_data: dict) -> dict:
+    """Import a flow from JSON"""
+    try:
+        now = datetime.now(timezone.utc)
+        
+        new_flow = {
+            "id": str(uuid.uuid4()),
+            "name": flow_data['name'],
+            "nodes": flow_data.get('nodes', []),
+            "edges": flow_data.get('edges', []),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.flows.insert_one(new_flow)
+        
+        return {
+            'id': new_flow['id'],
+            'name': new_flow['name'],
+            'is_in_use': False,
+            'channel_id': None,
+            'channel_name': None,
+            'nodes': new_flow['nodes'],
+            'edges': new_flow['edges'],
+            'created_at': new_flow['created_at'],
+            'updated_at': new_flow['updated_at']
+        }
+        
+    except Exception as e:
+        logger.error(f"Error importing flow: {e}")
+        raise

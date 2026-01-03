@@ -12,14 +12,17 @@ from database import (
     verify_password, get_agents, create_agent, update_agent, 
     delete_agent, delete_agents_bulk,
     get_admins, create_admin, update_admin, delete_admin, delete_admins_bulk,
-    get_channels, get_channel_by_id, create_channel, update_channel, delete_channel, delete_channels_bulk
+    get_channels, get_channel_by_id, create_channel, update_channel, delete_channel, delete_channels_bulk,
+    get_flows, get_flow_by_id, create_flow, update_flow, delete_flow, delete_flows_bulk,
+    duplicate_flow, export_flow, import_flow
 )
 from auth import create_access_token, verify_token
 from models import (
     LoginRequest, LoginResponse, UserResponse, 
     AgentCreate, AgentUpdate, AgentResponse, AgentListResponse,
     AdminCreate, AdminUpdate, AdminResponse, AdminListResponse,
-    ChannelCreate, ChannelUpdate, ChannelResponse, ChannelListResponse
+    ChannelCreate, ChannelUpdate, ChannelResponse, ChannelListResponse,
+    FlowCreate, FlowUpdate, FlowResponse, FlowListResponse, FlowImport
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -368,6 +371,152 @@ async def delete_channels_in_bulk(
     except Exception as e:
         logger.error(f"Error deleting channels in bulk: {e}")
         raise HTTPException(status_code=500, detail="Erro ao excluir canais")
+
+
+# Flow endpoints
+@api_router.get("/flows", response_model=FlowListResponse)
+async def list_flows(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    _: dict = Depends(require_admin)
+):
+    """List all flows (admin only)"""
+    try:
+        result = await get_flows(page=page, per_page=per_page, search=search)
+        return result
+    except Exception as e:
+        logger.error(f"Error listing flows: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar fluxos")
+
+@api_router.get("/flows/{flow_id}", response_model=FlowResponse)
+async def get_single_flow(
+    flow_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Get a single flow by ID (admin only)"""
+    try:
+        result = await get_flow_by_id(flow_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Fluxo não encontrado")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao obter fluxo")
+
+@api_router.post("/flows", response_model=FlowResponse)
+async def create_new_flow(
+    flow: FlowCreate,
+    _: dict = Depends(require_admin)
+):
+    """Create a new flow (admin only)"""
+    try:
+        result = await create_flow(flow.model_dump())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao criar fluxo")
+
+@api_router.put("/flows/{flow_id}", response_model=FlowResponse)
+async def update_existing_flow(
+    flow_id: str,
+    flow: FlowUpdate,
+    _: dict = Depends(require_admin)
+):
+    """Update a flow (admin only)"""
+    try:
+        result = await update_flow(flow_id, flow.model_dump(exclude_unset=True))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar fluxo")
+
+@api_router.delete("/flows/{flow_id}")
+async def delete_existing_flow(
+    flow_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Delete a flow (admin only)"""
+    try:
+        success = await delete_flow(flow_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Fluxo não encontrado")
+        return {"message": "Fluxo excluído com sucesso"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir fluxo")
+
+@api_router.post("/flows/bulk-delete")
+async def delete_flows_in_bulk(
+    flow_ids: List[str],
+    _: dict = Depends(require_admin)
+):
+    """Delete multiple flows (admin only)"""
+    try:
+        result = await delete_flows_bulk(flow_ids)
+        return {
+            "message": f"{result['deleted_count']} fluxo(s) excluído(s) com sucesso",
+            "deleted_count": result['deleted_count'],
+            "skipped": result['skipped']
+        }
+    except Exception as e:
+        logger.error(f"Error deleting flows in bulk: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir fluxos")
+
+@api_router.post("/flows/{flow_id}/duplicate", response_model=FlowResponse)
+async def duplicate_existing_flow(
+    flow_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Duplicate a flow (admin only)"""
+    try:
+        result = await duplicate_flow(flow_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error duplicating flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao duplicar fluxo")
+
+@api_router.get("/flows/{flow_id}/export")
+async def export_existing_flow(
+    flow_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Export a flow as JSON (admin only)"""
+    try:
+        result = await export_flow(flow_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error exporting flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao exportar fluxo")
+
+@api_router.post("/flows/import", response_model=FlowResponse)
+async def import_new_flow(
+    flow: FlowImport,
+    _: dict = Depends(require_admin)
+):
+    """Import a flow from JSON (admin only)"""
+    try:
+        result = await import_flow(flow.model_dump())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error importing flow: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao importar fluxo")
 
 # Include the router in the main app
 app.include_router(api_router)

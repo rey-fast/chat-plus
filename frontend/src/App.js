@@ -7,6 +7,7 @@ import DashboardPage from './pages/admin/DashboardPage';
 import AgentsPage from './pages/admin/AgentsPage';
 import AdminsPage from './pages/admin/AdminsPage';
 import ChannelsPage from './pages/admin/ChannelsPage';
+import FlowsPage from './pages/admin/FlowsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import PublicChat from './pages/PublicChat';
 import './App.css';
@@ -29,7 +30,7 @@ function App() {
           <Route path="/admin" element={<DashboardPage />} />
           <Route path="/admin/relatorios" element={<PlaceholderPage />} />
           <Route path="/admin/canais" element={<ChannelsPage />} />
-          <Route path="/admin/fluxo" element={<PlaceholderPage />} />
+          <Route path="/admin/fluxo" element={<FlowsPage />} />
           <Route path="/admin/envio-lote" element={<PlaceholderPage />} />
           <Route path="/admin/contatos" element={<PlaceholderPage />} />
           <Route path="/admin/configuracoes/administradores" element={<AdminsPage />} />

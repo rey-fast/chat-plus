@@ -3,12 +3,16 @@ import sys
 import json
 from datetime import datetime
 
-class AdminCRUDAPITester:
-    def __init__(self, base_url="https://chatdesk-6.preview.emergentagent.com"):
+class FlowsCRUDAPITester:
+    def __init__(self, base_url="https://chat-admin-flows.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.current_user_id = None
-        self.test_admin_id = None
+        self.flow1_id = None
+        self.flow2_id = None
+        self.duplicated_flow_id = None
+        self.exported_flow_data = None
+        self.imported_flow_id = None
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
