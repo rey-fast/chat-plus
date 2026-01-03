@@ -8,6 +8,7 @@ import AgentsPage from './pages/admin/AgentsPage';
 import AdminsPage from './pages/admin/AdminsPage';
 import ChannelsPage from './pages/admin/ChannelsPage';
 import FlowsPage from './pages/admin/FlowsPage';
+import TeamsPage from './pages/admin/TeamsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import PublicChat from './pages/PublicChat';
 import './App.css';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/admin/contatos" element={<PlaceholderPage />} />
           <Route path="/admin/configuracoes/administradores" element={<AdminsPage />} />
           <Route path="/admin/configuracoes/agentes" element={<AgentsPage />} />
+          <Route path="/admin/configuracoes/equipes" element={<TeamsPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -133,3 +133,33 @@ class FlowImport(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
     nodes: Optional[List[dict]] = None
     edges: Optional[List[dict]] = None
+
+
+# Team Models
+class TeamCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    session_timeout: int = Field(default=300, ge=60, le=86400)  # Tempo em segundos (min 1 min, max 24h)
+    finish_message: Optional[str] = Field(default="Atendimento encerrado. Obrigado pelo contato!")
+    no_agent_message: Optional[str] = Field(default="No momento não há agentes disponíveis. Por favor, aguarde.")
+
+class TeamUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    session_timeout: Optional[int] = Field(None, ge=60, le=86400)
+    finish_message: Optional[str] = None
+    no_agent_message: Optional[str] = None
+
+class TeamResponse(BaseModel):
+    id: str
+    name: str
+    session_timeout: int
+    finish_message: str
+    no_agent_message: str
+    agent_count: int
+    created_at: datetime
+    updated_at: datetime
+
+class TeamListResponse(BaseModel):
+    teams: List[TeamResponse]
+    total: int
+    page: int
+    per_page: int

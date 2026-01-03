@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Menu, Grid3X3, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut, MessageCircle } from 'lucide-react';
 
 const Topbar = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -14,8 +14,16 @@ const Topbar = ({ onToggleSidebar }) => {
 
   return (
     <header className="fixed top-0 left-0 right-0 h-14 bg-[#1A3F56] flex items-center justify-between px-4 z-50" data-testid="admin-topbar">
-      {/* Left side */}
+      {/* Left side - Logo and Menu Toggle */}
       <div className="flex items-center gap-4">
+        {/* Logo - sempre visível */}
+        <div className="flex items-center gap-2 mr-2">
+          <div className="w-8 h-8 bg-[#20C997] rounded-lg flex items-center justify-center">
+            <MessageCircle size={18} className="text-white" />
+          </div>
+          <span className="text-white font-semibold">ChatPlus</span>
+        </div>
+        
         <button
           onClick={onToggleSidebar}
           className="text-white/80 hover:text-white p-1"
@@ -27,10 +35,6 @@ const Topbar = ({ onToggleSidebar }) => {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
-        <button className="text-white/80 hover:text-white">
-          <Grid3X3 size={20} />
-        </button>
-        
         <div className="flex items-center gap-3">
           <span className="text-white text-sm">Administrador</span>
           <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">

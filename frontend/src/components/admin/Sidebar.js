@@ -12,7 +12,7 @@ import {
   ChevronRight,
   UserCog,
   UserCheck,
-  MessageCircle
+  UsersRound
 } from 'lucide-react';
 
 const menuItems = [
@@ -29,6 +29,7 @@ const menuItems = [
     submenu: [
       { id: 'administradores', label: 'Administradores', icon: UserCog, path: '/admin/configuracoes/administradores' },
       { id: 'agentes', label: 'Agentes', icon: UserCheck, path: '/admin/configuracoes/agentes' },
+      { id: 'equipes', label: 'Equipes', icon: UsersRound, path: '/admin/configuracoes/equipes' },
     ]
   }
 ];
@@ -107,20 +108,8 @@ const Sidebar = ({ collapsed }) => {
       }`}
       data-testid="admin-sidebar"
     >
-      {/* Logo area in sidebar */}
-      <div className="h-12 flex items-center px-4 border-b border-white/10">
-        {!collapsed && (
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#20C997] rounded-lg flex items-center justify-center">
-              <MessageCircle size={18} className="text-white" />
-            </div>
-            <span className="text-white font-semibold">ChatPlus</span>
-          </div>
-        )}
-      </div>
-
       {/* Menu */}
-      <nav className="py-2 overflow-y-auto h-[calc(100%-48px)]">
+      <nav className="py-2 overflow-y-auto h-full">
         {menuItems.map(renderMenuItem)}
       </nav>
     </aside>

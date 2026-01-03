@@ -920,3 +920,212 @@ async def import_flow(flow_data: dict) -> dict:
     except Exception as e:
         logger.error(f"Error importing flow: {e}")
         raise
+
+
+# Team CRUD operations
+async def get_teams(page: int = 1, per_page: int = 10, search: str = None) -> dict:
+    """Get all teams with pagination"""
+    try:
+        query = {}
+        
+        if search:
+            query["name"] = {"$regex": search, "$options": "i"}
+        
+        total = await db.teams.count_documents(query)
+        skip = (page - 1) * per_page
+        
+        cursor = db.teams.find(query).skip(skip).limit(per_page).sort("created_at", -1)
+        teams = []
+        
+        async for team in cursor:
+            # Count agents in this team
+            agent_count = await db.users.count_documents({
+                "role": "agent",
+                "team_id": team.get('id')
+            })
+            
+            teams.append({
+                'id': team.get('id'),
+                'name': team.get('name'),
+                'session_timeout': team.get('session_timeout', 300),
+                'finish_message': team.get('finish_message', 'Atendimento encerrado. Obrigado pelo contato!'),
+                'no_agent_message': team.get('no_agent_message', 'No momento não há agentes disponíveis. Por favor, aguarde.'),
+                'agent_count': agent_count,
+                'created_at': team.get('created_at'),
+                'updated_at': team.get('updated_at', team.get('created_at'))
+            })
+        
+        return {
+            'teams': teams,
+            'total': total,
+            'page': page,
+            'per_page': per_page
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting teams: {e}")
+        raise
+
+async def get_team_by_id(team_id: str) -> dict:
+    """Get a single team by ID"""
+    try:
+        team = await db.teams.find_one({"id": team_id})
+        if team:
+            # Count agents in this team
+            agent_count = await db.users.count_documents({
+                "role": "agent",
+                "team_id": team_id
+            })
+            
+            return {
+                'id': team.get('id'),
+                'name': team.get('name'),
+                'session_timeout': team.get('session_timeout', 300),
+                'finish_message': team.get('finish_message', 'Atendimento encerrado. Obrigado pelo contato!'),
+                'no_agent_message': team.get('no_agent_message', 'No momento não há agentes disponíveis. Por favor, aguarde.'),
+                'agent_count': agent_count,
+                'created_at': team.get('created_at'),
+                'updated_at': team.get('updated_at', team.get('created_at'))
+            }
+        return None
+    except Exception as e:
+        logger.error(f"Error getting team: {e}")
+        raise
+
+async def create_team(team_data: dict) -> dict:
+    """Create a new team"""
+    try:
+        # Check if team name already exists
+        existing = await db.teams.find_one({"name": team_data['name']})
+        if existing:
+            raise ValueError("Já existe uma equipe com este nome")
+        
+        now = datetime.now(timezone.utc)
+        
+        new_team = {
+            "id": str(uuid.uuid4()),
+            "name": team_data['name'],
+            "session_timeout": team_data.get('session_timeout', 300),
+            "finish_message": team_data.get('finish_message', 'Atendimento encerrado. Obrigado pelo contato!'),
+            "no_agent_message": team_data.get('no_agent_message', 'No momento não há agentes disponíveis. Por favor, aguarde.'),
+            "created_at": now,
+            "updated_at": now
+        }
+        
+        await db.teams.insert_one(new_team)
+        
+        return {
+            'id': new_team['id'],
+            'name': new_team['name'],
+            'session_timeout': new_team['session_timeout'],
+            'finish_message': new_team['finish_message'],
+            'no_agent_message': new_team['no_agent_message'],
+            'agent_count': 0,
+            'created_at': new_team['created_at'],
+            'updated_at': new_team['updated_at']
+        }
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error creating team: {e}")
+        raise
+
+async def update_team(team_id: str, team_data: dict) -> dict:
+    """Update a team"""
+    try:
+        # Check if team exists
+        team = await db.teams.find_one({"id": team_id})
+        if not team:
+            raise ValueError("Equipe não encontrada")
+        
+        update_data = {
+            "updated_at": datetime.now(timezone.utc)
+        }
+        
+        if team_data.get('name'):
+            # Check if new name is taken
+            existing = await db.teams.find_one({
+                "name": team_data['name'],
+                "id": {"$ne": team_id}
+            })
+            if existing:
+                raise ValueError("Já existe uma equipe com este nome")
+            update_data['name'] = team_data['name']
+        
+        if 'session_timeout' in team_data and team_data['session_timeout'] is not None:
+            update_data['session_timeout'] = team_data['session_timeout']
+        
+        if 'finish_message' in team_data and team_data['finish_message'] is not None:
+            update_data['finish_message'] = team_data['finish_message']
+        
+        if 'no_agent_message' in team_data and team_data['no_agent_message'] is not None:
+            update_data['no_agent_message'] = team_data['no_agent_message']
+        
+        await db.teams.update_one(
+            {"id": team_id},
+            {"$set": update_data}
+        )
+        
+        # Get updated team
+        return await get_team_by_id(team_id)
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error updating team: {e}")
+        raise
+
+async def delete_team(team_id: str) -> bool:
+    """Delete a team"""
+    try:
+        # Check if team has agents
+        agent_count = await db.users.count_documents({
+            "role": "agent",
+            "team_id": team_id
+        })
+        if agent_count > 0:
+            raise ValueError(f"Não é possível excluir esta equipe. Existem {agent_count} agente(s) vinculado(s).")
+        
+        result = await db.teams.delete_one({"id": team_id})
+        return result.deleted_count > 0
+        
+    except ValueError as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting team: {e}")
+        raise
+
+async def delete_teams_bulk(team_ids: List[str]) -> dict:
+    """Delete multiple teams"""
+    try:
+        deleted_count = 0
+        skipped = []
+        
+        for team_id in team_ids:
+            # Check if team has agents
+            agent_count = await db.users.count_documents({
+                "role": "agent",
+                "team_id": team_id
+            })
+            if agent_count > 0:
+                team = await db.teams.find_one({"id": team_id})
+                skipped.append({
+                    'id': team_id,
+                    'name': team.get('name') if team else 'Desconhecido',
+                    'reason': f"Possui {agent_count} agente(s) vinculado(s)"
+                })
+                continue
+            
+            result = await db.teams.delete_one({"id": team_id})
+            if result.deleted_count > 0:
+                deleted_count += 1
+        
+        return {
+            'deleted_count': deleted_count,
+            'skipped': skipped
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting teams in bulk: {e}")
+        raise

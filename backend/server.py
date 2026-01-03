@@ -14,7 +14,8 @@ from database import (
     get_admins, create_admin, update_admin, delete_admin, delete_admins_bulk,
     get_channels, get_channel_by_id, create_channel, update_channel, delete_channel, delete_channels_bulk,
     get_flows, get_flow_by_id, create_flow, update_flow, delete_flow, delete_flows_bulk,
-    duplicate_flow, export_flow, import_flow
+    duplicate_flow, export_flow, import_flow,
+    get_teams, get_team_by_id, create_team, update_team, delete_team, delete_teams_bulk
 )
 from auth import create_access_token, verify_token
 from models import (
@@ -22,7 +23,8 @@ from models import (
     AgentCreate, AgentUpdate, AgentResponse, AgentListResponse,
     AdminCreate, AdminUpdate, AdminResponse, AdminListResponse,
     ChannelCreate, ChannelUpdate, ChannelResponse, ChannelListResponse,
-    FlowCreate, FlowUpdate, FlowResponse, FlowListResponse, FlowImport
+    FlowCreate, FlowUpdate, FlowResponse, FlowListResponse, FlowImport,
+    TeamCreate, TeamUpdate, TeamResponse, TeamListResponse
 )
 
 ROOT_DIR = Path(__file__).parent
@@ -517,6 +519,107 @@ async def import_new_flow(
     except Exception as e:
         logger.error(f"Error importing flow: {e}")
         raise HTTPException(status_code=500, detail="Erro ao importar fluxo")
+
+
+# Team endpoints
+@api_router.get("/teams", response_model=TeamListResponse)
+async def list_teams(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    search: Optional[str] = None,
+    _: dict = Depends(require_admin)
+):
+    """List all teams (admin only)"""
+    try:
+        result = await get_teams(page=page, per_page=per_page, search=search)
+        return result
+    except Exception as e:
+        logger.error(f"Error listing teams: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao listar equipes")
+
+@api_router.get("/teams/{team_id}", response_model=TeamResponse)
+async def get_single_team(
+    team_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Get a single team by ID (admin only)"""
+    try:
+        result = await get_team_by_id(team_id)
+        if not result:
+            raise HTTPException(status_code=404, detail="Equipe não encontrada")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting team: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao obter equipe")
+
+@api_router.post("/teams", response_model=TeamResponse)
+async def create_new_team(
+    team: TeamCreate,
+    _: dict = Depends(require_admin)
+):
+    """Create a new team (admin only)"""
+    try:
+        result = await create_team(team.model_dump())
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error creating team: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao criar equipe")
+
+@api_router.put("/teams/{team_id}", response_model=TeamResponse)
+async def update_existing_team(
+    team_id: str,
+    team: TeamUpdate,
+    _: dict = Depends(require_admin)
+):
+    """Update a team (admin only)"""
+    try:
+        result = await update_team(team_id, team.model_dump(exclude_unset=True))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating team: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao atualizar equipe")
+
+@api_router.delete("/teams/{team_id}")
+async def delete_existing_team(
+    team_id: str,
+    _: dict = Depends(require_admin)
+):
+    """Delete a team (admin only)"""
+    try:
+        success = await delete_team(team_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Equipe não encontrada")
+        return {"message": "Equipe excluída com sucesso"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting team: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir equipe")
+
+@api_router.post("/teams/bulk-delete")
+async def delete_teams_in_bulk(
+    team_ids: List[str],
+    _: dict = Depends(require_admin)
+):
+    """Delete multiple teams (admin only)"""
+    try:
+        result = await delete_teams_bulk(team_ids)
+        return {
+            "message": f"{result['deleted_count']} equipe(s) excluída(s) com sucesso",
+            "deleted_count": result['deleted_count'],
+            "skipped": result['skipped']
+        }
+    except Exception as e:
+        logger.error(f"Error deleting teams in bulk: {e}")
+        raise HTTPException(status_code=500, detail="Erro ao excluir equipes")
 
 # Include the router in the main app
 app.include_router(api_router)

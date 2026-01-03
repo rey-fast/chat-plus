@@ -342,6 +342,66 @@ backend:
         agent: "main"
         comment: "Endpoint público para obter dados do canal (usado pela página de chat)"
 
+  - task: "GET /api/teams - Listar equipes (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para listar equipes com paginação e busca. Inclui contagem de agentes vinculados."
+
+  - task: "POST /api/teams - Criar equipe (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para criar equipe com campos: name, session_timeout, finish_message, no_agent_message"
+
+  - task: "PUT /api/teams/{id} - Atualizar equipe (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para atualizar equipe"
+
+  - task: "DELETE /api/teams/{id} - Excluir equipe (admin only)"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para excluir equipe. Não permite excluir equipes com agentes vinculados."
+
+  - task: "POST /api/teams/bulk-delete - Excluir múltiplas equipes"
+    implemented: true
+    working: NA
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Novo endpoint para exclusão em lote. Pula equipes com agentes vinculados."
+
 frontend:
   - task: "Login Page - Redirecionamento por role"
     implemented: true
@@ -366,6 +426,9 @@ frontend:
       - working: NA
         agent: "main"
         comment: "Layout admin com sidebar escura (#1A3F56) e topbar clone da imagem"
+      - working: NA
+        agent: "main"
+        comment: "Logo movido para o Topbar (sempre visível). Grid3X3 removido do header. Sidebar agora não tem mais logo."
 
   - task: "Página Agentes - Tabela CRUD"
     implemented: true
@@ -429,6 +492,18 @@ frontend:
       - working: NA
         agent: "main"
         comment: "Página pública de chat para clientes acessarem via link gerado pelo canal Site. Formulário inicial para coletar dados do cliente (nome, email, telefone). Interface de chat simples."
+
+  - task: "Página Equipes - Tabela CRUD"
+    implemented: true
+    working: NA
+    file: "frontend/src/pages/admin/TeamsPage.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: NA
+        agent: "main"
+        comment: "Nova página de equipes com mesmo layout de AgentsPage. Colunas: Equipe, Tempo de Sessão, Seleção, Ações. Modal com campos: Nome, Tempo de Sessão, Mensagem de Finalização, Mensagem de Nenhum Agente Disponível. Não permite excluir equipe com agentes vinculados."
 
 metadata:
   created_by: "main_agent"

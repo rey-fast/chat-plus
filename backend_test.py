@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class FlowsCRUDAPITester:
-    def __init__(self, base_url="https://corp-chat-hub.preview.emergentagent.com"):
+    def __init__(self, base_url="https://chatcorp-1.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.current_user_id = None
