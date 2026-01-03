@@ -302,6 +302,13 @@ const FlowsPage = () => {
           className="hidden"
         />
 
+        {/* Breadcrumb */}
+        <div className="mb-4">
+          <span className="text-gray-500 text-sm">Configuração</span>
+          <span className="text-gray-400 mx-2">{'>'}</span>
+          <span className="text-[#1A3F56] text-sm font-medium">Fluxos</span>
+        </div>
+
         {/* Action Bar */}
         <div className="flex items-center justify-between mb-4">
           {/* Left side - Actions */}

@@ -260,20 +260,7 @@ const ChannelsPage = () => {
 
         {/* Controls Row */}
         <div className="flex items-center justify-between mb-4">
-          {/* Search */}
-          <div className="relative w-64">
-            <input
-              type="text"
-              placeholder="Pesquisa"
-              value={search}
-              onChange={handleSearch}
-              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#1A3F56]"
-              data-testid="search-input"
-            />
-            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-
-          {/* Selection actions */}
+          {/* Left side - Actions */}
           <div className="flex items-center gap-4">
             <button
               onClick={toggleSelectAll}
@@ -303,6 +290,19 @@ const ChannelsPage = () => {
               <Trash2 size={16} />
               Excluir selecionados
             </button>
+          </div>
+
+          {/* Right side - Search */}
+          <div className="relative w-64">
+            <input
+              type="text"
+              placeholder="Pesquisar"
+              value={search}
+              onChange={handleSearch}
+              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#1A3F56]"
+              data-testid="search-input"
+            />
+            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
