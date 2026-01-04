@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -21,6 +22,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const FlowsPage = () => {
+  const navigate = useNavigate();
   const { getAuthHeader } = useAuth();
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -276,8 +278,8 @@ const FlowsPage = () => {
   };
 
   const handleMontarFluxo = (flow) => {
-    // For now, just show an alert - editor will be implemented later
-    alert(`Editor de fluxo "${flow.name}" - Em desenvolvimento`);
+    // Navega para o editor do fluxo
+    navigate(`/admin/fluxo/${flow.id}`);
     setActionMenuOpen(null);
   };
 

@@ -8,6 +8,7 @@ import AgentsPage from './pages/admin/AgentsPage';
 import AdminsPage from './pages/admin/AdminsPage';
 import ChannelsPage from './pages/admin/ChannelsPage';
 import FlowsPage from './pages/admin/FlowsPage';
+import FlowEditorPage from './pages/admin/FlowEditorPage';
 import TeamsPage from './pages/admin/TeamsPage';
 import PlaceholderPage from './pages/admin/PlaceholderPage';
 import PublicChat from './pages/PublicChat';
@@ -32,6 +33,7 @@ function App() {
           <Route path="/admin/relatorios" element={<PlaceholderPage />} />
           <Route path="/admin/canais" element={<ChannelsPage />} />
           <Route path="/admin/fluxo" element={<FlowsPage />} />
+          <Route path="/admin/fluxo/:flowId" element={<FlowEditorPage />} />
           <Route path="/admin/envio-lote" element={<PlaceholderPage />} />
           <Route path="/admin/contatos" element={<PlaceholderPage />} />
           <Route path="/admin/configuracoes/administradores" element={<AdminsPage />} />

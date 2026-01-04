@@ -111,6 +111,8 @@ class FlowCreate(BaseModel):
 
 class FlowUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100)
+    nodes: Optional[List[dict]] = None
+    edges: Optional[List[dict]] = None
 
 class FlowResponse(BaseModel):
     id: str
